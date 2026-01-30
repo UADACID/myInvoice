@@ -1,0 +1,595 @@
+import { useState, useMemo, useEffect } from 'react';
+import { useInvoices } from '@/hooks/useInvoices';
+import { useClients } from '@/hooks/useClients';
+import { useSettings } from '@/hooks/useSettings';
+import { invoiceService } from '@/storage/services';
+import { generateInvoicesForYear } from '@/services/invoiceService';
+import { generateInvoicePdf } from '@/pdf/invoicePdf';
+import { Table, TableRow, TableCell, Button, Card, CardContent, Modal, Input } from '@/components';
+import type { Invoice } from '@/domain/types';
+
+type SortKey = 'invoiceNumber' | 'client' | 'total' | 'issueDate' | 'dueDate' | null;
+type SortDirection = 'asc' | 'desc' | null;
+
+export function InvoicesPage() {
+  const { invoices, loading, refreshInvoices } = useInvoices();
+  const { clients } = useClients();
+  const { settings } = useSettings();
+  const [generating, setGenerating] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterClient, setFilterClient] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
+  // Tab state for recurring invoices
+  const [selectedProjectTab, setSelectedProjectTab] = useState<string | null>(null);
+
+  const getClientName = (clientId: string) => {
+    const client = clients.find((c) => c.id === clientId);
+    return client?.companyName || 'Unknown';
+  };
+
+  const handleGenerateInvoices = async () => {
+    const year = new Date().getFullYear();
+    if (!confirm(`Generate invoices for ${year}? Existing invoices will be updated if contract data has changed.`)) return;
+
+    setGenerating(true);
+    try {
+      const result = await generateInvoicesForYear(year);
+      const parts: string[] = [];
+      if (result.created.length > 0) {
+        parts.push(`Created ${result.created.length} new invoices`);
+      }
+      if (result.updated > 0) {
+        parts.push(`Updated ${result.updated} existing invoices`);
+      }
+      if (result.skipped > 0) {
+        parts.push(`Skipped ${result.skipped} unchanged invoices`);
+      }
+      const message = parts.length > 0 ? parts.join('. ') + '.' : 'No invoices generated.';
+      alert(message);
+      refreshInvoices(); // Refresh the invoice list to show updated totals
+    } catch (error) {
+      console.error('Error generating invoices:', error);
+      const message = error instanceof Error ? error.message : 'Failed to generate invoices';
+      alert(message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDownloadPdf = async (invoiceId: string) => {
+    if (!settings) {
+      alert('Please configure settings first');
+      return;
+    }
+
+    setDownloading(invoiceId);
+    try {
+      const invoice = await invoiceService.getById(invoiceId);
+      if (!invoice) {
+        alert('Invoice not found');
+        return;
+      }
+
+      const clientData = clients.find((c) => c.id === invoice.clientId);
+      if (!clientData) {
+        alert('Client data not found');
+        return;
+      }
+
+      const { pdfBytes, filename } = await generateInvoicePdf(invoice, clientData, settings);
+
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      const message = error instanceof Error ? error.message : 'Failed to generate PDF';
+      alert(`Error: ${message}`);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handlePreview = async (invoiceId: string) => {
+    if (!settings) {
+      alert('Please configure settings first');
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const invoice = await invoiceService.getById(invoiceId);
+      if (!invoice) {
+        alert('Invoice not found');
+        return;
+      }
+
+      const clientData = clients.find((c) => c.id === invoice.clientId);
+      if (!clientData) {
+        alert('Client data not found');
+        return;
+      }
+
+      const { pdfBytes } = await generateInvoicePdf(invoice, clientData, settings);
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      setPreviewInvoice(invoice);
+      setPreviewUrl(url);
+    } catch (error) {
+      console.error('Error generating PDF preview:', error);
+      const message = error instanceof Error ? error.message : 'Failed to generate PDF preview';
+      alert(`Error: ${message}`);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewInvoice(null);
+    setPreviewUrl(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Delete this invoice?')) {
+      try {
+        await invoiceService.delete(id);
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+        alert('Failed to delete invoice');
+      }
+    }
+  };
+
+  const handleCreateInvoice = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'create-invoice' } }));
+  };
+
+  // Separate invoices: recurring (from contracts) vs custom (with items)
+  const baseRecurringInvoices = useMemo(() => 
+    invoices.filter(inv => !inv.items || inv.items.length === 0),
+    [invoices]
+  );
+  const baseCustomInvoices = useMemo(() => 
+    invoices.filter(inv => inv.items && inv.items.length > 0),
+    [invoices]
+  );
+
+  // Group recurring invoices by project (clientId)
+  const projectsWithInvoices = useMemo(() => {
+    const grouped: Record<string, { clientId: string; invoices: Invoice[] }> = {};
+    
+    baseRecurringInvoices.forEach((invoice) => {
+      if (!grouped[invoice.clientId]) {
+        grouped[invoice.clientId] = {
+          clientId: invoice.clientId,
+          invoices: [],
+        };
+      }
+      grouped[invoice.clientId].invoices.push(invoice);
+    });
+
+    // Convert to array and sort by client name
+    return Object.values(grouped)
+      .map((group) => ({
+        ...group,
+        clientName: getClientName(group.clientId),
+      }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [baseRecurringInvoices, clients]);
+
+  // Set default selected tab to first project
+  useEffect(() => {
+    if (projectsWithInvoices.length > 0 && !selectedProjectTab) {
+      setSelectedProjectTab(projectsWithInvoices[0].clientId);
+    }
+  }, [projectsWithInvoices.length, selectedProjectTab]);
+
+  // Get invoices for selected project
+  const selectedProjectInvoices = useMemo(() => {
+    if (!selectedProjectTab) return [];
+    const project = projectsWithInvoices.find(p => p.clientId === selectedProjectTab);
+    return project?.invoices || [];
+  }, [selectedProjectTab, projectsWithInvoices]);
+
+  // Filter and search function
+  const filterAndSearch = (invoiceList: Invoice[]) => {
+    return invoiceList.filter((invoice) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const clientName = getClientName(invoice.clientId).toLowerCase();
+        const invoiceNum = invoice.invoiceNumber.toLowerCase();
+        const total = invoice.total.toString();
+        
+        if (
+          !clientName.includes(query) &&
+          !invoiceNum.includes(query) &&
+          !total.includes(query)
+        ) {
+          return false;
+        }
+      }
+
+      // Client filter
+      if (filterClient && invoice.clientId !== filterClient) {
+        return false;
+      }
+
+      // Date range filter
+      if (filterDateFrom && invoice.issueDate < filterDateFrom) {
+        return false;
+      }
+      if (filterDateTo && invoice.issueDate > filterDateTo) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
+  // Sort function
+  const sortInvoices = (invoiceList: Invoice[]) => {
+    if (!sortKey || !sortDirection) return invoiceList;
+
+    const sorted = [...invoiceList].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortKey) {
+        case 'invoiceNumber':
+          aValue = a.invoiceNumber;
+          bValue = b.invoiceNumber;
+          break;
+        case 'client':
+          aValue = getClientName(a.clientId);
+          bValue = getClientName(b.clientId);
+          break;
+        case 'total':
+          aValue = a.total;
+          bValue = b.total;
+          break;
+        case 'issueDate':
+          aValue = a.issueDate;
+          bValue = b.issueDate;
+          break;
+        case 'dueDate':
+          aValue = a.dueDate;
+          bValue = b.dueDate;
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        return sortDirection === 'asc'
+          ? (aValue as number) - (bValue as number)
+          : (bValue as number) - (aValue as number);
+      }
+    });
+
+    return sorted;
+  };
+
+  // Apply filters and sorting for selected project
+  const filteredRecurringInvoices = useMemo(() => {
+    const filtered = filterAndSearch(selectedProjectInvoices);
+    return sortInvoices(filtered);
+  }, [selectedProjectInvoices, searchQuery, filterClient, filterDateFrom, filterDateTo, sortKey, sortDirection, clients]);
+
+  // Apply filters and sorting for custom invoices
+  const customInvoices = useMemo(() => {
+    const filtered = filterAndSearch(baseCustomInvoices);
+    return sortInvoices(filtered);
+  }, [baseCustomInvoices, searchQuery, filterClient, filterDateFrom, filterDateTo, sortKey, sortDirection, clients]);
+
+  if (loading) {
+    return <div className="text-center py-16"><span className="text-sm text-slate-400">Loading</span></div>;
+  }
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      // Toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key as SortKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterClient('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setSortKey(null);
+    setSortDirection(null);
+  };
+
+  const renderInvoiceTable = (invoiceList: Invoice[], emptyMessage: string) => {
+    if (invoiceList.length === 0) {
+      return (
+        <Card>
+          <CardContent>
+            <div className="text-center py-12">
+              <p className="text-slate-500 text-sm">{emptyMessage}</p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const tableHeaders = [
+      { label: 'Invoice Number', sortable: true, key: 'invoiceNumber' },
+      { label: 'Client', sortable: true, key: 'client' },
+      { label: 'Total', sortable: true, key: 'total' },
+      { label: 'Issue Date', sortable: true, key: 'issueDate' },
+      { label: 'Due Date', sortable: true, key: 'dueDate' },
+      { label: 'Actions', sortable: false },
+    ];
+
+    return (
+      <Table 
+        headers={tableHeaders}
+        sortKey={sortKey || undefined}
+        sortDirection={sortDirection || undefined}
+        onSort={handleSort}
+      >
+        {invoiceList.map((invoice) => (
+          <TableRow key={invoice.id}>
+            <TableCell>{invoice.invoiceNumber}</TableCell>
+            <TableCell>{getClientName(invoice.clientId)}</TableCell>
+            <TableCell className="font-medium">{invoice.total.toLocaleString()}</TableCell>
+            <TableCell>{invoice.issueDate}</TableCell>
+            <TableCell>{invoice.dueDate}</TableCell>
+            <TableCell>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handlePreview(invoice.id)}
+                  disabled={previewLoading || !settings}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors disabled:opacity-40"
+                  data-coachmark="preview-btn"
+                >
+                  {previewLoading ? 'Loading...' : 'Preview'}
+                </button>
+                <button
+                  onClick={() => handleDownloadPdf(invoice.id)}
+                  disabled={downloading === invoice.id || !settings}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors disabled:opacity-40"
+                >
+                  {downloading === invoice.id ? 'Generating...' : 'PDF'}
+                </button>
+                <button
+                  onClick={() => handleDelete(invoice.id)}
+                  className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </Table>
+    );
+  };
+
+  const hasActiveFilters = searchQuery || filterClient || filterDateFrom || filterDateTo;
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Invoices</h1>
+        <p className="text-slate-600 text-sm">Manage recurring and custom invoices</p>
+      </div>
+
+      {/* Search and Filter Bar */}
+      <Card className="mb-6">
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
+                <Input
+                  label="Search"
+                  type="text"
+                  placeholder="Search by invoice number, client, or amount..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2.5">Client</label>
+                <select
+                  value={filterClient}
+                  onChange={(e) => setFilterClient(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-slate-900"
+                >
+                  <option value="">All Clients</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.companyName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2.5">Date Range</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                    placeholder="From"
+                    className="flex-1"
+                  />
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                    placeholder="To"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+            {hasActiveFilters && (
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={clearFilters}
+                  className="text-xs"
+                >
+                  Clear Filters
+                </Button>
+                <span className="text-sm text-slate-500">
+                  {filteredRecurringInvoices.length + customInvoices.length} result(s) found
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recurring Invoices Section */}
+      <div className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Recurring Invoices
+              {baseRecurringInvoices.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-slate-500">
+                  ({baseRecurringInvoices.length} total)
+                </span>
+              )}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Generated automatically from contracts (12 months per year)</p>
+          </div>
+          <Button 
+            onClick={handleGenerateInvoices} 
+            disabled={generating} 
+            data-coachmark="generate-invoices-btn"
+          >
+            {generating ? 'Generating...' : 'Generate for Year'}
+          </Button>
+        </div>
+
+        {projectsWithInvoices.length === 0 ? (
+          <Card>
+            <CardContent>
+              <div className="text-center py-12">
+                <p className="text-slate-500 text-sm">No recurring invoices. Generate invoices from your contracts.</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Project Tabs */}
+            <div className="mb-4 border-b border-slate-200">
+              <div className="flex gap-2 overflow-x-auto">
+                {projectsWithInvoices.map((project) => (
+                  <button
+                    key={project.clientId}
+                    onClick={() => setSelectedProjectTab(project.clientId)}
+                    className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
+                      selectedProjectTab === project.clientId
+                        ? 'text-indigo-600 bg-indigo-50 border-b-2 border-indigo-600'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    {project.clientName}
+                    <span className="ml-2 text-xs opacity-70">({project.invoices.length})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table for selected project */}
+            {selectedProjectTab && (
+              <div>
+                {filteredRecurringInvoices.length === 0 ? (
+                  <Card>
+                    <CardContent>
+                      <div className="text-center py-12">
+                        <p className="text-slate-500 text-sm">
+                          No invoices found for {projectsWithInvoices.find(p => p.clientId === selectedProjectTab)?.clientName}
+                          {searchQuery || filterDateFrom || filterDateTo ? ' (try adjusting filters)' : ''}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  renderInvoiceTable(filteredRecurringInvoices, '')
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Custom Invoices Section */}
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Custom Invoices
+              {customInvoices.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-slate-500">
+                  ({customInvoices.length})
+                </span>
+              )}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Manually created invoices with custom line items</p>
+          </div>
+          <Button 
+            onClick={handleCreateInvoice} 
+            variant="secondary" 
+            data-coachmark="create-invoice-btn"
+          >
+            + Create Custom Invoice
+          </Button>
+        </div>
+        {renderInvoiceTable(customInvoices, 'No custom invoices. Create your first custom invoice.')}
+      </div>
+
+      <Modal
+        isOpen={previewInvoice !== null}
+        onClose={handleClosePreview}
+        title={previewInvoice ? `Invoice Preview - ${previewInvoice.invoiceNumber}` : ''}
+        className="max-w-5xl"
+      >
+        {previewUrl && (
+          <div className="w-full h-[calc(90vh-120px)]">
+            <iframe
+              src={previewUrl}
+              className="w-full h-full border border-slate-200 rounded-lg"
+              title="Invoice Preview"
+            />
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
