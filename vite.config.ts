@@ -5,7 +5,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.GITHUB_PAGES === 'true' ? '/myInvoice/' : '/',
+  base: '/', // Vercel doesn't need special base path
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

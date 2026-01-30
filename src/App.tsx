@@ -5,22 +5,24 @@ import { ContractsPage } from '@/features/contracts/ContractsPage';
 import { InvoicesPage } from '@/features/invoices/InvoicesPage';
 import { CreateInvoicePage } from '@/features/invoices/CreateInvoicePage';
 import { BackupPage } from '@/features/backup/BackupPage';
-import { PrivacyPage } from '@/features/privacy/PrivacyPage';
+import { PrivacyContent } from '@/features/privacy/PrivacyPage';
 import { Tutorial, useTutorial } from '@/components/Tutorial';
 import { CoachmarkProvider, useCoachmarkContext } from '@/components/CoachmarkProvider';
+import { Modal } from '@/components';
 import { coachmarkSteps } from '@/config/coachmarkSteps';
 
-type Page = 'settings' | 'clients' | 'contracts' | 'invoices' | 'create-invoice' | 'backup' | 'privacy';
+type Page = 'settings' | 'clients' | 'contracts' | 'invoices' | 'create-invoice' | 'backup';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('invoices');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const { showTutorial, startTutorial, closeTutorial } = useTutorial();
   const { startTour: startCoachmark } = useCoachmarkContext();
 
   useEffect(() => {
     const handleNavigate = (e: CustomEvent) => {
       const page = e.detail?.page;
-      if (page && ['settings', 'clients', 'contracts', 'invoices', 'create-invoice', 'backup', 'privacy'].includes(page)) {
+      if (page && ['settings', 'clients', 'contracts', 'invoices', 'create-invoice', 'backup'].includes(page)) {
         setCurrentPage(page as Page);
       }
     };
@@ -49,8 +51,6 @@ function AppContent() {
         return <CreateInvoicePage />;
       case 'backup':
         return <BackupPage />;
-      case 'privacy':
-        return <PrivacyPage />;
       default:
         return <InvoicesPage />;
     }
@@ -61,7 +61,7 @@ function AppContent() {
       <nav className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex items-center justify-between h-20">
-            <div className="text-lg font-semibold text-slate-900">Invoice</div>
+            <div className="text-lg font-semibold text-slate-900">MyInvoice</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handlePageChange('invoices')}
@@ -119,13 +119,9 @@ function AppContent() {
                 Backup
               </button>
               <button
-                onClick={() => handlePageChange('privacy')}
+                onClick={() => setShowPrivacyModal(true)}
                 data-coachmark="privacy-nav"
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                  currentPage === 'privacy'
-                    ? 'text-indigo-600 bg-indigo-50'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
+                className="px-5 py-2.5 text-sm font-medium rounded-lg transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               >
                 Privacy
               </button>
@@ -163,6 +159,15 @@ function AppContent() {
         currentPage={currentPage}
         onNavigate={(page) => handlePageChange(page as Page)}
       />
+
+      <Modal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="Privacy & Security"
+        className="max-w-4xl"
+      >
+        <PrivacyContent />
+      </Modal>
     </div>
   );
 }

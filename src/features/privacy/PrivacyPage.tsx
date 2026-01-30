@@ -1,11 +1,14 @@
 import { Card, CardContent } from '@/components';
 
-export function PrivacyPage() {
+interface PrivacyContentProps {
+  className?: string;
+}
+
+export function PrivacyContent({ className = '' }: PrivacyContentProps) {
   return (
-    <div className="max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-3">Privacy & Security</h1>
-        <p className="text-lg text-slate-600">
+    <div className={className}>
+      <div className="mb-6">
+        <p className="text-base text-slate-600 mb-6">
           Your data belongs to you. Everything stays on your device.
         </p>
       </div>
@@ -208,4 +211,9 @@ export function PrivacyPage() {
       </div>
     </div>
   );
+}
+
+// Keep PrivacyPage for backward compatibility if needed
+export function PrivacyPage() {
+  return <PrivacyContent className="max-w-4xl" />;
 }

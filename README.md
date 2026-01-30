@@ -1,4 +1,4 @@
-# Invoice Generator
+# MyInvoice
 
 A local-first, offline-capable invoice generator built with React, TypeScript, and Vite. Create professional PDF invoices without any backend, authentication, or cloud services. All data is stored locally in your browser using IndexedDB.
 
@@ -64,43 +64,51 @@ Preview the production build:
 npm run preview
 ```
 
-## Deployment to GitHub Pages
+## Deployment to Vercel (FREE)
 
-This application is configured for automatic deployment to GitHub Pages using GitHub Actions.
+Vercel offers free hosting for personal projects, including private repositories. This is the recommended deployment method.
 
-### Setup Instructions
+### Quick Deploy
 
-1. **Push your code to GitHub**
+1. **Deploy via Vercel Dashboard** (Recommended):
+   - Go to [vercel.com](https://vercel.com)
+   - Sign up/login with your GitHub account
+   - Click **"Add New Project"**
+   - Import your GitHub repository
+   - Vercel will auto-detect Vite settings
+   - Click **"Deploy"**
+
+2. **Automatic Deployments**:
+   - Every push to `main` branch will auto-deploy
+   - Preview deployments for pull requests
+   - Free custom domain support
+   - Your app will be available at `https://your-project.vercel.app`
+
+### Manual Deploy via CLI (Optional)
+
+1. **Install Vercel CLI**:
    ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin https://github.com/yourusername/myInvoice.git
-   git push -u origin main
+   npm i -g vercel
    ```
 
-2. **Enable GitHub Pages**
-   - Go to your repository on GitHub
-   - Navigate to **Settings** > **Pages**
-   - Under **Source**, select **GitHub Actions**
-   - Save the settings
+2. **Deploy**:
+   ```bash
+   vercel
+   ```
 
-3. **Automatic Deployment**
-   - GitHub Actions will automatically deploy when you push to the `main` or `master` branch
-   - The workflow is defined in `.github/workflows/deploy.yml`
-   - Your app will be available at `https://yourusername.github.io/myInvoice/`
+3. **Production Deploy**:
+   ```bash
+   vercel --prod
+   ```
 
 ### Important Notes
 
-- **Repository Name**: If your repository name is different from `myInvoice`, update the `base` path in `vite.config.ts`:
-  ```typescript
-  base: process.env.GITHUB_PAGES === 'true' ? '/your-repo-name/' : '/',
-  ```
-
-- **Custom Domain**: You can add a custom domain in GitHub Pages settings. Update the base path accordingly.
-
-- **Private Repositories**: GitHub Pages for private repositories requires GitHub Pro. For free accounts, the repository must be public.
+- **100% FREE** - No credit card required for personal projects
+- **Private Repos Supported** - Unlike GitHub Pages free tier
+- **Auto HTTPS** - SSL certificate included automatically
+- **Global CDN** - Fast loading worldwide
+- **Custom Domain** - Add your own domain for free
+- **No Configuration Needed** - Vercel auto-detects Vite projects
 
 ## Usage
 
