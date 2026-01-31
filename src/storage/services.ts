@@ -76,6 +76,10 @@ export const invoiceService = {
     return await db.invoices.where('clientId').equals(clientId).toArray();
   },
 
+  async getByContractId(contractId: UUID): Promise<Invoice[]> {
+    return await db.invoices.where('contractId').equals(contractId).toArray();
+  },
+
   async create(data: Omit<Invoice, 'id'>): Promise<Invoice> {
     const invoice: Invoice = {
       id: uuidv4(),

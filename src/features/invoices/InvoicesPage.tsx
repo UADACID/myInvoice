@@ -3,19 +3,18 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
 import { useSettings } from '@/hooks/useSettings';
 import { invoiceService } from '@/storage/services';
-import { generateInvoicesForYear } from '@/services/invoiceService';
 import { generateInvoicePdf } from '@/pdf/invoicePdf';
 import { Table, TableRow, TableCell, Button, Card, CardContent, Modal, Input } from '@/components';
+import { getInvoiceType } from '@/utils/invoiceCompat';
 import type { Invoice } from '@/domain/types';
 
 type SortKey = 'invoiceNumber' | 'client' | 'total' | 'issueDate' | 'dueDate' | null;
 type SortDirection = 'asc' | 'desc' | null;
 
 export function InvoicesPage() {
-  const { invoices, loading, refreshInvoices } = useInvoices();
+  const { invoices, loading } = useInvoices();
   const { clients } = useClients();
   const { settings } = useSettings();
-  const [generating, setGenerating] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -35,35 +34,6 @@ export function InvoicesPage() {
   const getClientName = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
     return client?.companyName || 'Unknown';
-  };
-
-  const handleGenerateInvoices = async () => {
-    const year = new Date().getFullYear();
-    if (!confirm(`Generate invoices for ${year}? Existing invoices will be updated if contract data has changed.`)) return;
-
-    setGenerating(true);
-    try {
-      const result = await generateInvoicesForYear(year);
-      const parts: string[] = [];
-      if (result.created.length > 0) {
-        parts.push(`Created ${result.created.length} new invoices`);
-      }
-      if (result.updated > 0) {
-        parts.push(`Updated ${result.updated} existing invoices`);
-      }
-      if (result.skipped > 0) {
-        parts.push(`Skipped ${result.skipped} unchanged invoices`);
-      }
-      const message = parts.length > 0 ? parts.join('. ') + '.' : 'No invoices generated.';
-      alert(message);
-      refreshInvoices(); // Refresh the invoice list to show updated totals
-    } catch (error) {
-      console.error('Error generating invoices:', error);
-      const message = error instanceof Error ? error.message : 'Failed to generate invoices';
-      alert(message);
-    } finally {
-      setGenerating(false);
-    }
   };
 
   const handleDownloadPdf = async (invoiceId: string) => {
@@ -149,28 +119,13 @@ export function InvoicesPage() {
     setPreviewUrl(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Delete this invoice?')) {
-      try {
-        await invoiceService.delete(id);
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-        alert('Failed to delete invoice');
-      }
-    }
-  };
-
-  const handleCreateInvoice = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'create-invoice' } }));
-  };
-
   // Separate invoices: recurring (from contracts) vs custom (with items)
   const baseRecurringInvoices = useMemo(() => 
-    invoices.filter(inv => !inv.items || inv.items.length === 0),
+    invoices.filter(inv => getInvoiceType(inv) === 'recurring'),
     [invoices]
   );
   const baseCustomInvoices = useMemo(() => 
-    invoices.filter(inv => inv.items && inv.items.length > 0),
+    invoices.filter(inv => getInvoiceType(inv) === 'custom'),
     [invoices]
   );
 
@@ -352,11 +307,12 @@ export function InvoicesPage() {
     ];
 
     return (
-      <Table 
+      <Table
         headers={tableHeaders}
         sortKey={sortKey || undefined}
         sortDirection={sortDirection || undefined}
         onSort={handleSort}
+        data-coachmark="invoice-table"
       >
         {invoiceList.map((invoice) => (
           <TableRow key={invoice.id}>
@@ -382,12 +338,6 @@ export function InvoicesPage() {
                 >
                   {downloading === invoice.id ? 'Generating...' : 'PDF'}
                 </button>
-                <button
-                  onClick={() => handleDelete(invoice.id)}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
-                >
-                  Delete
-                </button>
               </div>
             </TableCell>
           </TableRow>
@@ -402,7 +352,7 @@ export function InvoicesPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-slate-900 mb-2">Invoices</h1>
-        <p className="text-slate-600 text-sm">Manage recurring and custom invoices</p>
+        <p className="text-slate-600 text-sm">View all invoices. Preview and download PDFs. To generate or create invoices, go to a contract (Clients → View → Contract → View).</p>
       </div>
 
       {/* Search and Filter Bar */}
@@ -473,27 +423,18 @@ export function InvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Recurring Invoices Section */}
+      {/* Recurring Invoices Section - read-only */}
       <div className="mb-12">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Recurring Invoices
-              {baseRecurringInvoices.length > 0 && (
-                <span className="ml-2 text-sm font-normal text-slate-500">
-                  ({baseRecurringInvoices.length} total)
-                </span>
-              )}
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">Generated automatically from contracts (12 months per year)</p>
-          </div>
-          <Button 
-            onClick={handleGenerateInvoices} 
-            disabled={generating} 
-            data-coachmark="generate-invoices-btn"
-          >
-            {generating ? 'Generating...' : 'Generate for Year'}
-          </Button>
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Recurring Invoices
+            {baseRecurringInvoices.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                ({baseRecurringInvoices.length} total)
+              </span>
+            )}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">Generated from contracts. To generate for a year, open a contract and use &quot;Generate for Year&quot;.</p>
         </div>
 
         {projectsWithInvoices.length === 0 ? (
@@ -549,29 +490,20 @@ export function InvoicesPage() {
         )}
       </div>
 
-      {/* Custom Invoices Section */}
+      {/* Custom Invoices Section - read-only */}
       <div>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Custom Invoices
-              {customInvoices.length > 0 && (
-                <span className="ml-2 text-sm font-normal text-slate-500">
-                  ({customInvoices.length})
-                </span>
-              )}
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">Manually created invoices with custom line items</p>
-          </div>
-          <Button 
-            onClick={handleCreateInvoice} 
-            variant="secondary" 
-            data-coachmark="create-invoice-btn"
-          >
-            + Create Custom Invoice
-          </Button>
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Custom Invoices
+            {customInvoices.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                ({customInvoices.length})
+              </span>
+            )}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">Manually created invoices with custom line items. To create one, open a contract and use &quot;Create Custom Invoice&quot;.</p>
         </div>
-        {renderInvoiceTable(customInvoices, 'No custom invoices. Create your first custom invoice.')}
+        {renderInvoiceTable(customInvoices, 'No custom invoices.')}
       </div>
 
       <Modal

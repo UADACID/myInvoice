@@ -2,88 +2,80 @@ import { contractService, invoiceService } from '@/storage/services';
 import { generateInvoiceNumber } from '@/domain/types';
 import type { Invoice } from '@/domain/types';
 
+const formatDateLocal = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+export interface GenerateInvoicesResult {
+  created: Invoice[];
+  updated: number;
+  skipped: number;
+}
+
 /**
- * Generate invoices for all contracts for a given year
- * Updates existing invoices if contract data has changed, creates new ones if they don't exist
+ * Generate recurring invoices for a single contract for a given year.
+ * Matches by contractId + issueDate. Creates or updates 12 monthly invoices.
  */
-export async function generateInvoicesForYear(year: number): Promise<{ created: Invoice[]; updated: number; skipped: number }> {
-  const contracts = await contractService.getAll();
-  
-  if (contracts.length === 0) {
-    throw new Error('No contracts found. Please create a contract first.');
+export async function generateInvoicesForYear(contractId: string, year: number): Promise<GenerateInvoicesResult> {
+  const contract = await contractService.getById(contractId);
+  if (!contract) {
+    throw new Error('Contract not found.');
   }
 
   const invoices: Invoice[] = [];
   let updated = 0;
   let skipped = 0;
+  const existingInvoices = await invoiceService.getByContractId(contractId);
 
-  for (const contract of contracts) {
-    for (let month = 0; month < 12; month++) {
-      // Invoice date is the last day of the previous month
-      // For January 2026 invoice: issueDate = 2025-12-31 (last day of December 2025)
-      const issueDate = new Date(year, month, 0); // Day 0 gives last day of previous month
-      
-      // Format dates in local timezone to avoid UTC conversion issues
-      const formatDateLocal = (date: Date): string => {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      };
+  for (let month = 0; month < 12; month++) {
+    const issueDate = new Date(year, month, 0);
+    const issueDateStr = formatDateLocal(issueDate);
 
-      const issueDateStr = formatDateLocal(issueDate);
-      
-      let dueDate: Date;
-      
-      // Handle backward compatibility: if dueDateMethod is not set, default to 'days'
-      const dueDateMethod = contract.dueDateMethod || 'days';
-      
-      if (dueDateMethod === 'endOfNextMonth') {
-        // Due date is the last day of the invoice month
-        // For January 2026 invoice: dueDate = 2026-01-31 (last day of January 2026)
-        dueDate = new Date(year, month + 1, 0); // Day 0 of month+1 gives last day of month
-      } else {
-        // Use fixed number of days from invoice date
-        dueDate = new Date(issueDate);
-        dueDate.setDate(dueDate.getDate() + (contract.dueDays || 30));
-      }
+    const dueDateMethod = contract.dueDateMethod || 'days';
+    let dueDate: Date;
+    if (dueDateMethod === 'endOfNextMonth') {
+      dueDate = new Date(year, month + 1, 0);
+    } else {
+      dueDate = new Date(issueDate);
+      dueDate.setDate(dueDate.getDate() + (contract.dueDays || 30));
+    }
+    const dueDateStr = formatDateLocal(dueDate);
+    const total = contract.unitPrice * contract.quantity;
 
-      const dueDateStr = formatDateLocal(dueDate);
-      const total = contract.unitPrice * contract.quantity;
+    const existingInvoice = existingInvoices.find((inv) => inv.issueDate === issueDateStr);
 
-      // Check if invoice already exists
-      const existingInvoices = await invoiceService.getByClientId(contract.clientId);
-      const existingInvoice = existingInvoices.find((inv) => inv.issueDate === issueDateStr);
+    if (existingInvoice) {
+      const needsUpdate =
+        existingInvoice.total !== total ||
+        existingInvoice.dueDate !== dueDateStr;
 
-      if (existingInvoice) {
-        // Update existing invoice with current contract data if values changed
-        const needsUpdate = 
-          existingInvoice.total !== total || 
-          existingInvoice.dueDate !== dueDateStr;
-        
-        if (needsUpdate) {
-          await invoiceService.update(existingInvoice.id, {
-            dueDate: dueDateStr,
-            total,
-          });
-          updated++;
-        } else {
-          skipped++;
-        }
-      } else {
-        // Create new invoice
-        const invoice: Omit<Invoice, 'id'> = {
-          invoiceNumber: generateInvoiceNumber(issueDate),
-          clientId: contract.clientId,
-          issueDate: issueDateStr,
+      if (needsUpdate) {
+        await invoiceService.update(existingInvoice.id, {
           dueDate: dueDateStr,
           total,
-          createdAt: new Date().toISOString(),
-        };
-
-        const created = await invoiceService.create(invoice);
-        invoices.push(created);
+          invoiceType: 'recurring',
+          contractId: contract.id,
+        });
+        updated++;
+      } else {
+        skipped++;
       }
+    } else {
+      const invoice: Omit<Invoice, 'id'> = {
+        invoiceNumber: generateInvoiceNumber(issueDate),
+        clientId: contract.clientId,
+        issueDate: issueDateStr,
+        dueDate: dueDateStr,
+        total,
+        createdAt: new Date().toISOString(),
+        invoiceType: 'recurring',
+        contractId: contract.id,
+      };
+      const created = await invoiceService.create(invoice);
+      invoices.push(created);
     }
   }
 

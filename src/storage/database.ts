@@ -13,12 +13,19 @@ class InvoiceDatabase extends Dexie {
 
   constructor() {
     super('InvoiceDB');
-    
+
     this.version(1).stores({
       clients: 'id, companyName',
       contracts: 'id, clientId',
       invoices: 'id, invoiceNumber, clientId, issueDate',
       settings: '++id', // Auto-increment for singleton
+    });
+
+    this.version(2).stores({
+      clients: 'id, companyName',
+      contracts: 'id, clientId',
+      invoices: 'id, invoiceNumber, clientId, issueDate, contractId',
+      settings: '++id',
     });
   }
 }

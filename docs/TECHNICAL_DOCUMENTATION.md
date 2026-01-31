@@ -2,6 +2,8 @@
 
 This document describes the current behavior of the MyInvoice application. It is the source of truth for refactoring, onboarding, and system evolution. No code changes are implied; the codebase is treated as authoritative.
 
+**Architecture (client- and contract-centric):** Default home is **Clients**. From Clients → View → **Client Detail** (client info + contracts list, contract CRUD). From a contract → View → **Contract Detail** (contract info + invoices list, "Generate for Year", "Create Custom Invoice", Preview/PDF/Delete per invoice). **Invoices** (nav) is read-only: all invoices with search/filter/sort, Preview and PDF only; no generation or deletion there.
+
 ---
 
 ## 1. Feature Inventory
@@ -12,12 +14,12 @@ Features are grouped by domain.
 
 | Feature | Purpose | Entry Point | Dependencies |
 |--------|---------|-------------|---------------|
-| Recurring invoice generation | Create 12 monthly invoices per contract for a given year | InvoicesPage → "Generate for Year" button | Contracts, `generateInvoicesForYear`, `invoiceService` |
-| Custom invoice creation | Create a single invoice with multiple line items | InvoicesPage → "+ Create Custom Invoice" or nav; CreateInvoicePage form | Clients, `invoiceService`, `generateInvoiceNumber` |
-| Invoice list | View recurring and custom invoices with search, filter, sort | InvoicesPage (default page) | `useInvoices`, `useClients` |
-| Invoice preview | Open PDF in modal iframe | InvoicesPage → "Preview" per row | Settings, client data, `generateInvoicePdf` |
-| Invoice PDF download | Download invoice as PDF file | InvoicesPage → "PDF" per row | Settings, client data, `generateInvoicePdf`, `formatFilename` |
-| Invoice deletion | Remove an invoice from storage | InvoicesPage → "Delete" per row | `invoiceService.delete` |
+| Recurring invoice generation | Create 12 monthly invoices for one contract for a given year | Contract Detail → "Generate for Year" button | `generateInvoicesForYear(contractId, year)`, `invoiceService` |
+| Custom invoice creation | Create a single invoice with multiple line items (optionally linked to contract) | Contract Detail → "Create Custom Invoice"; CreateInvoicePage form | Clients, contracts, `invoiceService`, `generateInvoiceNumber` |
+| Invoice list (read-only) | View all recurring and custom invoices with search, filter, sort; grouped/tabbed by client or type | InvoicesPage (nav "Invoices") | `useInvoices`, `useClients`, `getInvoiceType` |
+| Invoice preview | Open PDF in modal iframe | InvoicesPage or Contract Detail → "Preview" per row | Settings, client data, `generateInvoicePdf` |
+| Invoice PDF download | Download invoice as PDF file | InvoicesPage or Contract Detail → "PDF" per row | Settings, client data, `generateInvoicePdf`, `formatFilename` |
+| Invoice deletion | Remove an invoice from storage | Contract Detail → "Delete" per row (for that contract's invoices only) | `invoiceService.delete` |
 
 ### 1.2 Settings Domain
 
@@ -32,8 +34,10 @@ Features are grouped by domain.
 
 | Feature | Purpose | Entry Point | Dependencies |
 |--------|---------|-------------|---------------|
-| Clients CRUD | Create, read, update, delete clients | ClientsPage | `useClients`, `clientService` |
-| Contracts CRUD | Create, read, update, delete contracts (description template, unit price, currency, quantity, due date method) | ContractsPage | `useContracts`, `useClients`, `contractService` |
+| Clients list (home) | Grid of client cards with search and sort; View → Client Detail | ClientsPage (default page) | `useClients`, `useContracts`, `clientService` |
+| Client Detail | Show client info; list contracts for client; add/edit/delete contract; View → Contract Detail | ClientDetailPage (route `client-detail`) | `useClient`, `contractService` |
+| Contracts list | Table of all contracts; View → Contract Detail | ContractsPage | `useContracts`, `useClients`, `contractService` |
+| Contract Detail | Show contract info; list invoices for contract; Generate for Year; Create Custom Invoice; Preview/PDF/Delete per invoice | ContractDetailPage (route `contract-detail`) | `useContract`, `useInvoices`, `useClients`, `useSettings`, `generateInvoicesForYear`, `generateInvoicePdf`, `invoiceService` |
 | Settings singleton | Single settings record; create/update | SettingsPage, app init | `useSettings`, `settingsService`, `initializeDefaultSettings` |
 
 ### 1.4 PDF / Output Domain
@@ -64,47 +68,49 @@ Features are grouped by domain.
 
 ### 2.1 Recurring Invoice Generation
 
-**Entry point:** InvoicesPage, button "Generate for Year" (and `data-coachmark="generate-invoices-btn"`).
+**Entry point:** Contract Detail page, button "Generate for Year" (and `data-coachmark="generate-invoices-btn"`).
 
 **Flow:**
 
-1. User clicks "Generate for Year".
-2. `confirm()` asks: "Generate invoices for {current year}? Existing invoices will be updated if contract data has changed."
-3. On confirm: `generateInvoicesForYear(year)` is called (`src/services/invoiceService.ts`).
-4. **generateInvoicesForYear:**
-   - Load all contracts via `contractService.getAll()`. If none, throw: "No contracts found. Please create a contract first."
-   - For each contract, for each month index `0..11`:
-     - **Issue date:** `new Date(year, month, 0)` → last day of the *previous* month (e.g. month 1 → Jan 31). Formatted as `YYYY-MM-DD` in local timezone.
-     - **Due date:** If `dueDateMethod === 'endOfNextMonth'`: last day of current month (`new Date(year, month + 1, 0)`). Else: issue date + `dueDays` (default 30). Formatted same way.
+1. User opens a contract (Clients → View client → View contract) and clicks "Generate for Year".
+2. `confirm()` asks: "Generate recurring invoices for {current year}? Existing invoices for this contract will be updated if data changed."
+3. On confirm: `generateInvoicesForYear(contractId, year)` is called (`src/services/invoiceService.ts`).
+4. **generateInvoicesForYear(contractId, year):**
+   - Load contract via `contractService.getById(contractId)`. If missing, throw "Contract not found."
+   - Load existing invoices for this contract: `invoiceService.getByContractId(contractId)`.
+   - For each month index `0..11`:
+     - **Issue date:** `new Date(year, month, 0)` → last day of the *previous* month. Formatted as `YYYY-MM-DD` in local timezone.
+     - **Due date:** If `dueDateMethod === 'endOfNextMonth'`: last day of current month. Else: issue date + `dueDays` (default 30). Formatted same way.
      - **Total:** `contract.unitPrice * contract.quantity`.
-     - **Match existing:** `invoiceService.getByClientId(contract.clientId)` then `.find(inv => inv.issueDate === issueDateStr)`.
-     - If found: if `total` or `dueDate` changed, `invoiceService.update(id, { dueDate, total })`; count updated/skipped.
-     - If not found: create with `generateInvoiceNumber(issueDate)`, `clientId`, `issueDate`, `dueDate`, `total`, `createdAt`; no `items` (recurring).
-5. Alert summarizes created / updated / skipped; `refreshInvoices()` runs.
+     - **Match existing:** `existingInvoices.find(inv => inv.issueDate === issueDateStr)` (match by `contractId` + `issueDate`).
+     - If found: if `total` or `dueDate` changed, `invoiceService.update(id, { dueDate, total, invoiceType: 'recurring', contractId })`; count updated/skipped.
+     - If not found: create with `generateInvoiceNumber(issueDate)`, `clientId` from contract, `issueDate`, `dueDate`, `total`, `createdAt`, `invoiceType: 'recurring'`, `contractId`.
+5. Alert summarizes created / updated / skipped; invoice list refreshes.
 6. **Side effects:** IndexedDB `invoices` table: new or updated records.
 
-**Note:** Matching is by `clientId` + `issueDate` only. If a client has multiple contracts, each contract produces one invoice per month for that client; the last contract processed for that client+month overwrites the previous one. (See Non-Obvious Behavior.)
+**Note:** Matching is by `contractId` + `issueDate`. Multiple contracts per client each get their own 12 invoices per year.
 
 ### 2.2 Custom Invoice Creation
 
-**Entry point:** InvoicesPage → "+ Create Custom Invoice" (navigates to create-invoice) or nav "Create Invoice"; CreateInvoicePage form.
+**Entry point:** Contract Detail → "Create Custom Invoice" (navigates to create-invoice with `clientId` and `contractId` in context); CreateInvoicePage form. Client and currency can be pre-filled from the contract.
 
 **Flow:**
 
-1. User selects client, issue date, due date, currency; adds one or more items (description, quantity, unit price).
-2. "Create Invoice" submit → `validateForm()`:
+1. User may arrive with optional `initialClientId` and `initialContractId` (from navigation context). Form pre-fills client and currency from contract when present.
+2. User selects/confirms client, issue date, due date, currency; adds one or more items (description, quantity, unit price).
+3. "Create Invoice" submit → `validateForm()`:
    - Required: client, issue date, due date, at least one item; each item: non-empty description, quantity > 0, unit price > 0.
    - Errors stored in local state and shown inline.
-3. If valid:
+4. If valid:
    - `total = sum(item.quantity * item.unitPrice)`.
    - `invoiceNumber = generateInvoiceNumber(new Date(issueDate))` → `INV-YYYY-MM-{timestamp}`.
-   - `invoiceService.create({ invoiceNumber, clientId, issueDate, dueDate, total, createdAt, items, currency })`.
-   - Form reset; alert "Invoice {invoiceNumber} created successfully!"; `window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'invoices' } }))`.
-4. **Side effects:** IndexedDB `invoices` table: one new record with `items` and optional `currency`.
+   - `invoiceService.create({ invoiceNumber, clientId, issueDate, dueDate, total, createdAt, items, currency, invoiceType: 'custom', contractId: linkedContractId ?? null })`.
+   - Form reset; alert "Invoice {invoiceNumber} created successfully!"; navigate back to contract-detail if came from contract, else to invoices.
+5. **Side effects:** IndexedDB `invoices` table: one new record with `items`, `currency`, `invoiceType: 'custom'`, and optional `contractId`.
 
 ### 2.3 Invoice Preview and PDF Download
 
-**Entry point:** InvoicesPage, per-row "Preview" and "PDF".
+**Entry point:** InvoicesPage or Contract Detail, per-row "Preview" and "PDF".
 
 **Flow (shared until PDF bytes):**
 
@@ -192,19 +198,21 @@ Features are grouped by domain.
 - **Client:** `id`, `companyName`, `address`, `email`.
 - **Contract:** `id`, `clientId`, `descriptionTemplate`, `unitPrice`, `currency`, `quantity`, `dueDays`, `dueDateMethod` (`'days' | 'endOfNextMonth'`).
 - **InvoiceItem:** `description`, `quantity`, `unitPrice`.
-- **Invoice:** `id`, `invoiceNumber`, `clientId`, `issueDate`, `dueDate`, `total`, `createdAt`; optional `items?`, `currency?`.
+- **Invoice:** `id`, `invoiceNumber`, `clientId`, `issueDate`, `dueDate`, `total`, `createdAt`; optional `items?`, `currency?`, `invoiceType?` (`'recurring' | 'custom'`), `contractId?` (string | null). Recurring invoices MUST have `contractId`; custom MAY have it.
 - **Settings:** `freelancerName`, `address`, `email`, `bankName`, `accountHolder`, `accountNumber`, `swift`, `bankCountry`, `bankCurrency`, `filenameTemplate`, optional `invoiceTemplate?` (`InvoiceTemplateId`).
 - **InvoiceTemplateId:** `'modern_clean' | 'colorful_minimal' | 'professional'`.
 
 **Helper:** `generateInvoiceNumber(issueDate: Date)` → `INV-YYYY-MM-{Date.now()}`.
 
+**Compatibility:** `getInvoiceType(inv)` in `src/utils/invoiceCompat.ts`: returns `inv.invoiceType` when present, else infers from `inv.items` (custom if has items, else recurring). Legacy invoices without `contractId`/`invoiceType` still display and generate PDFs; contract for PDF is resolved via `invoice.contractId` when set, else `contractService.getByClientId(invoice.clientId)[0]`.
+
 ### 3.2 Persistence (src/storage/database.ts)
 
-- **Database name:** `InvoiceDB` (Dexie).
+- **Database name:** `InvoiceDB` (Dexie). Schema version 2.
 - **Tables:**
   - `clients`: stores `Client`; keyPath `id`; index `companyName`.
   - `contracts`: stores `Contract`; keyPath `id`; index `clientId`.
-  - `invoices`: stores `Invoice`; keyPath `id`; indexes `invoiceNumber`, `clientId`, `issueDate`. List query: `orderBy('issueDate').reverse()`.
+  - `invoices`: stores `Invoice`; keyPath `id`; indexes `invoiceNumber`, `clientId`, `issueDate`, `contractId`. List query: `orderBy('issueDate').reverse()`. `invoiceService.getByContractId(contractId)` uses `contractId` index.
   - `settings`: singleton-style; keyPath `++id` (auto-increment). Only first record is used.
 
 ### 3.3 Where Data Originates and Is Persisted
@@ -228,8 +236,8 @@ Features are grouped by domain.
 ### 3.5 State Flow (UI)
 
 - No global app store. Each feature uses hooks that call storage services.
-- **Reactivity:** `useClients`, `useContracts`, `useInvoices`, `useSettings` use Dexie `liveQuery()` so list/settings updates propagate to UI.
-- **Navigation:** In-app navigation is React state (`currentPage`) in App/AppContent; cross-component navigation uses `window.dispatchEvent(new CustomEvent('navigate', { detail: { page } }))` and a listener in AppContent that sets its page state.
+- **Reactivity:** `useClients`, `useContracts`, `useInvoices`, `useSettings` use Dexie `liveQuery()` so list/settings updates propagate to UI. Detail pages use `useClient(clientId)` and `useContract(contractId)` for single-entity loading.
+- **Navigation:** Single source of truth in App: `currentPage` (default `'clients'`), `contextClientId`, `contextContractId`. Navigation uses `handleNavigate(page, clientId?, contractId?)`; the `navigate` event supports `detail: { page, clientId?, contractId? }`. Routes: `clients`, `client-detail`, `contracts`, `contract-detail`, `invoices`, `create-invoice`, `settings`, `backup`. Client Detail and Contract Detail receive context so the correct client/contract is shown.
 
 ---
 
@@ -239,7 +247,7 @@ Features are grouped by domain.
 
 - **Registry:** `src/pdf/templates/registry.ts` exports `INVOICE_TEMPLATES` (id → `{ id, label, render }`) and `resolveTemplateId(value)`. Default: `modern_clean`.
 - **Context:** `buildContext()` in `src/pdf/invoicePdf.ts` produces `PdfRenderContext`: doc, page, invoice, client, settings, fonts, dimensions, contract (or null), currency, itemsToRender, hasCustomItems, paymentTerms, invoiceNumText.
-- **Render:** Each template’s `render(ctx)` draws one A4 page (sender, invoice title/dates, bill-to, table, amount due, remittance, payment terms, footer). Layout and colors differ (e.g. colorful_minimal uses pastel palette).
+- **Render:** Each template's `render(ctx)` draws one A4 page (sender, invoice title/dates, bill-to, table, amount due, remittance, payment terms, footer). Layout and colors differ (e.g. colorful_minimal uses pastel palette).
 
 ### 4.2 Styling Logic
 
@@ -304,9 +312,9 @@ Features are grouped by domain.
 
 ### 7.1 Tightly Coupled Areas
 
-- **invoicePdf** depends on `contractService.getByClientId` for currency and description (and payment terms). Any change to contract shape or lookup affects PDF.
-- **generateInvoicesForYear** depends on both `contractService` and `invoiceService`; matching and update logic is in one place.
-- **InvoicesPage** depends on `useInvoices`, `useClients`, `useSettings`, `invoiceService`, `generateInvoicesForYear`, `generateInvoicePdf`; it is the most coupled screen.
+- **invoicePdf** (`buildContext`) resolves contract via `invoice.contractId` when set (else `contractService.getByClientId(invoice.clientId)[0]`); uses `invoiceType` or items for `hasCustomItems`. Any change to contract shape or lookup affects PDF.
+- **generateInvoicesForYear(contractId, year)** depends on `contractService.getById`, `invoiceService.getByContractId`, and `invoiceService` create/update; matching is by `contractId` + `issueDate`.
+- **ContractDetailPage** depends on `useContract`, `useInvoices`, `useClients`, `useSettings`, `generateInvoicesForYear`, `generateInvoicePdf`, `invoiceService`; it is the main place for invoice generation and deletion. **InvoicesPage** is read-only and depends on `useInvoices`, `useClients`, `useSettings`, `generateInvoicePdf`, `getInvoiceType`.
 
 ### 7.2 Safe to Refactor Independently
 
@@ -317,7 +325,8 @@ Features are grouped by domain.
 
 ### 7.3 Implicit Assumptions
 
-- Recurring invoices assume at most one invoice per client per issue date when matching; multiple contracts per client can overwrite (see Non-Obvious Behavior).
+- Recurring invoices are matched by `contractId` + `issueDate`; each contract has at most one invoice per month. Multiple contracts per client each have their own invoices.
+- Invoice type is explicit (`invoiceType`) when set; legacy data uses `getInvoiceType(inv)` (inference from `items`).
 - Invoice numbers are unique by construction (`timestamp`); no explicit uniqueness check in DB.
 - Settings are effectively a singleton; multi-user or multi-tenant not considered.
 - All dates in generation use local timezone formatting for consistency with display.
@@ -326,28 +335,28 @@ Features are grouped by domain.
 
 ## 8. Non-Obvious Behavior
 
-### 8.1 Coachmark vs AppContent State
+### 8.1 Coachmark vs App State
 
-CoachmarkProvider receives `currentPage` and `onNavigate` from the outer App component. AppContent maintains its own `currentPage` state for rendering. When the coachmark tour calls `onNavigate(targetPage)`, only the outer App’s state updates; AppContent’s state is not updated by that call. **Unclear / Needs Verification:** Whether the visible page actually changes during the guided tour when a step has a different `targetPage`.
+Navigation state lives in App (`currentPage`, `contextClientId`, `contextContractId`). CoachmarkProvider receives `currentPage` and `onNavigate` from App; AppContent receives the same state and `onNavigate`. When the coachmark calls `onNavigate(targetPage)`, App updates state and AppContent re-renders with the new page, so the visible page and coachmark stay in sync.
 
-### 8.2 Missing Coachmark Target
+### 8.2 Coachmark Target invoice-table
 
-The coachmark step with id `invoice-table` uses `targetSelector: 'invoice-table'`. No element in InvoicesPage has `data-coachmark="invoice-table"`. The Table component can accept `data-coachmark` but it is not set for the invoice tables. This step will not highlight any element.
+The coachmark step with id `invoice-table` uses `targetSelector: 'invoice-table'`. InvoicesPage tables pass `data-coachmark="invoice-table"` to the Table component, so the step can highlight the invoice table when on the Invoices page.
 
 ### 8.3 Recurring Invoice Matching
 
-Recurring invoices are matched by `clientId` + `issueDate` only. If a client has multiple contracts, the loop creates/updates one invoice per contract per month for that client. The last contract processed for that client+month overwrites the existing invoice (same client, same issue date). So only one recurring invoice per client per month is effectively kept; the second contract’s data wins.
+Recurring invoices are matched by `contractId` + `issueDate`. Each contract gets up to 12 invoices per year (one per month). Multiple contracts per client each have their own set of invoices; no overwriting.
 
 ### 8.4 Custom vs Recurring Classification
 
-- **Custom:** `inv.items && inv.items.length > 0`.
-- **Recurring:** `!inv.items || inv.items.length === 0`.
+- **Explicit:** When `inv.invoiceType` is set, use it (`'recurring' | 'custom'`).
+- **Legacy inference:** `getInvoiceType(inv)` returns `inv.invoiceType` if present; else custom if `inv.items && inv.items.length > 0`, else recurring.
 
-Recurring list is grouped by client (tabs); custom list is a single table. Filters and sort apply separately to the selected recurring project list and to the custom list.
+Recurring list on InvoicesPage is grouped by client (tabs); custom list is a single table. Filters and sort apply separately to the selected recurring list and to the custom list.
 
 ### 8.5 Navigation Mechanism
 
-The app does not use React Router. Navigation is state-based: `currentPage` in AppContent, and `window.dispatchEvent(new CustomEvent('navigate', { detail: { page } }))` with a listener that calls `setCurrentPage(page)`. CreateInvoicePage uses this event to return to the invoices list.
+The app does not use React Router. Navigation is state-based in App: `currentPage`, `contextClientId`, `contextContractId`. `window.dispatchEvent(new CustomEvent('navigate', { detail: { page, clientId?, contractId? } }))` with a listener that calls `handleNavigate(page, clientId, contractId)`. CreateInvoicePage navigates back to contract-detail (with contractId) when created from a contract, else to invoices.
 
 ### 8.6 Magic Values
 

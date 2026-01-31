@@ -212,3 +212,16 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 For issues and questions, please open an issue on GitHub.
 # myInvoice
+
+
+## License & Usage
+
+MyInvoice is open source and free to use for:
+- Personal use
+- Freelancers
+- Internal business invoicing
+
+You are NOT allowed to:
+- Resell this software
+- Rebrand and claim it as your own
+- Offer it as a paid SaaS or commercial service

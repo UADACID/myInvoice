@@ -1,30 +1,44 @@
 import { useState, useEffect } from 'react';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
+import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ContractsPage } from '@/features/contracts/ContractsPage';
+import { ContractDetailPage } from '@/features/contracts/ContractDetailPage';
 import { InvoicesPage } from '@/features/invoices/InvoicesPage';
 import { CreateInvoicePage } from '@/features/invoices/CreateInvoicePage';
 import { BackupPage } from '@/features/backup/BackupPage';
 import { PrivacyContent } from '@/features/privacy/PrivacyPage';
 import { Tutorial, useTutorial } from '@/components/Tutorial';
 import { CoachmarkProvider, useCoachmarkContext } from '@/components/CoachmarkProvider';
-import { Modal } from '@/components';
+import { Logo, Modal } from '@/components';
 import { coachmarkSteps } from '@/config/coachmarkSteps';
 
-type Page = 'settings' | 'clients' | 'contracts' | 'invoices' | 'create-invoice' | 'backup';
+const PAGE_VALUES = ['settings', 'clients', 'client-detail', 'contracts', 'contract-detail', 'invoices', 'create-invoice', 'backup'] as const;
+type Page = (typeof PAGE_VALUES)[number];
 
-function AppContent() {
-  const [currentPage, setCurrentPage] = useState<Page>('invoices');
+export type NavigateOptions = { page: Page; clientId?: string; contractId?: string };
+
+function AppContent({
+  currentPage,
+  contextClientId,
+  contextContractId,
+  onNavigate,
+}: {
+  currentPage: Page;
+  contextClientId: string | null;
+  contextContractId: string | null;
+  onNavigate: (page: Page, clientId?: string, contractId?: string) => void;
+}) {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { showTutorial, startTutorial, closeTutorial } = useTutorial();
   const { startTour: startCoachmark } = useCoachmarkContext();
 
   useEffect(() => {
-    const handleNavigate = (e: CustomEvent) => {
+    const handleNavigate = (e: CustomEvent<NavigateOptions>) => {
       const page = e.detail?.page;
-      if (page && ['settings', 'clients', 'contracts', 'invoices', 'create-invoice', 'backup'].includes(page)) {
-        setCurrentPage(page as Page);
+      if (page && PAGE_VALUES.includes(page)) {
+        onNavigate(page, e.detail?.clientId, e.detail?.contractId);
       }
     };
 
@@ -32,10 +46,10 @@ function AppContent() {
     return () => {
       window.removeEventListener('navigate', handleNavigate as EventListener);
     };
-  }, []);
+  }, [onNavigate]);
 
   const handlePageChange = (page: Page) => {
-    setCurrentPage(page);
+    onNavigate(page);
     setMobileMenuOpen(false); // Close mobile menu when navigating
   };
 
@@ -50,16 +64,20 @@ function AppContent() {
         return <SettingsPage />;
       case 'clients':
         return <ClientsPage />;
+      case 'client-detail':
+        return <ClientDetailPage clientId={contextClientId} onNavigate={(page, clientId, contractId) => onNavigate(page as Page, clientId, contractId)} />;
       case 'contracts':
         return <ContractsPage />;
+      case 'contract-detail':
+        return <ContractDetailPage contractId={contextContractId} onNavigate={(page, clientId, contractId) => onNavigate(page as Page, clientId, contractId)} />;
       case 'invoices':
         return <InvoicesPage />;
       case 'create-invoice':
-        return <CreateInvoicePage />;
+        return <CreateInvoicePage initialClientId={contextClientId} initialContractId={contextContractId} />;
       case 'backup':
         return <BackupPage />;
       default:
-        return <InvoicesPage />;
+        return <ClientsPage />;
     }
   };
 
@@ -68,20 +86,22 @@ function AppContent() {
       <nav className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            <div className="text-lg font-semibold text-slate-900">MyInvoice</div>
+            <button type="button" onClick={() => handlePageChange('clients')} className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-lg">
+              <Logo />
+            </button>
             
-            {/* Desktop Menu */}
+            {/* Desktop Menu - Clients first (home), then Contracts, Invoices, Settings, Backup */}
             <div className="hidden md:flex items-center gap-2">
               <button
-                onClick={() => handlePageChange('invoices')}
-                data-coachmark="invoices-nav"
+                onClick={() => handlePageChange('clients')}
+                data-coachmark="clients-nav"
                 className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                  currentPage === 'invoices'
+                  currentPage === 'clients'
                     ? 'text-indigo-600 bg-indigo-50'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                Invoices
+                Clients
               </button>
               <button
                 onClick={() => handlePageChange('contracts')}
@@ -95,15 +115,15 @@ function AppContent() {
                 Contracts
               </button>
               <button
-                onClick={() => handlePageChange('clients')}
-                data-coachmark="clients-nav"
+                onClick={() => handlePageChange('invoices')}
+                data-coachmark="invoices-nav"
                 className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                  currentPage === 'clients'
+                  currentPage === 'invoices'
                     ? 'text-indigo-600 bg-indigo-50'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                Clients
+                Invoices
               </button>
               <button
                 onClick={() => handlePageChange('settings')}
@@ -189,15 +209,15 @@ function AppContent() {
             <div className="md:hidden border-t border-slate-200">
               <div className="px-2 pt-2 pb-3 space-y-1">
                 <button
-                  onClick={() => handlePageChange('invoices')}
-                  data-coachmark="invoices-nav"
+                  onClick={() => handlePageChange('clients')}
+                  data-coachmark="clients-nav"
                   className={`w-full text-left px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                    currentPage === 'invoices'
+                    currentPage === 'clients'
                       ? 'text-indigo-600 bg-indigo-50'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
-                  Invoices
+                  Clients
                 </button>
                 <button
                   onClick={() => handlePageChange('contracts')}
@@ -211,15 +231,15 @@ function AppContent() {
                   Contracts
                 </button>
                 <button
-                  onClick={() => handlePageChange('clients')}
-                  data-coachmark="clients-nav"
+                  onClick={() => handlePageChange('invoices')}
+                  data-coachmark="invoices-nav"
                   className={`w-full text-left px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                    currentPage === 'clients'
+                    currentPage === 'invoices'
                       ? 'text-indigo-600 bg-indigo-50'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
-                  Clients
+                  Invoices
                 </button>
                 <button
                   onClick={() => handlePageChange('settings')}
@@ -289,17 +309,28 @@ function AppContent() {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('invoices');
+  const [currentPage, setCurrentPage] = useState<Page>('clients');
+  const [contextClientId, setContextClientId] = useState<string | null>(null);
+  const [contextContractId, setContextContractId] = useState<string | null>(null);
+
+  const handleNavigate = (page: Page, clientId?: string, contractId?: string) => {
+    setCurrentPage(page);
+    setContextClientId(clientId ?? null);
+    setContextContractId(contractId ?? null);
+  };
 
   return (
     <CoachmarkProvider
       steps={coachmarkSteps}
       currentPage={currentPage}
-      onNavigate={(page: string) => {
-        setCurrentPage(page as Page);
-      }}
+      onNavigate={(page: string) => handleNavigate(page as Page)}
     >
-      <AppContent />
+      <AppContent
+        currentPage={currentPage}
+        contextClientId={contextClientId}
+        contextContractId={contextContractId}
+        onNavigate={handleNavigate}
+      />
     </CoachmarkProvider>
   );
 }

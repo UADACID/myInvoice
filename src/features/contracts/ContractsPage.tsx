@@ -309,6 +309,14 @@ export function ContractsPage() {
                 ) : (
                   <>
                     <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'contract-detail', contractId: contract.id } }));
+                      }}
+                      className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+                    >
+                      View
+                    </button>
+                    <button
                       onClick={() => startEdit(contract)}
                       className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
                     >
