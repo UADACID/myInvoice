@@ -18,6 +18,7 @@ export async function initializeDefaultSettings(): Promise<void> {
       bankCountry: '',
       bankCurrency: 'JPY',
       filenameTemplate: 'invoice-{yyyymm}.pdf',
+      invoiceTemplate: 'modern_clean',
     };
     await settingsService.set(defaultSettings);
   }

@@ -39,6 +39,8 @@ export interface Invoice {
   currency?: string; // Currency for custom invoice (defaults to contract currency or JPY)
 }
 
+export type InvoiceTemplateId = 'modern_clean' | 'colorful_minimal' | 'professional';
+
 export interface Settings {
   freelancerName: string;
   address: string;
@@ -50,6 +52,7 @@ export interface Settings {
   bankCountry: string;
   bankCurrency: string; // default: JPY
   filenameTemplate: string; // default: invoice-{yyyymm}.pdf
+  invoiceTemplate?: InvoiceTemplateId; // default: modern_clean
 }
 
 /**
