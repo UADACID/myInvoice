@@ -3,6 +3,8 @@ import { useSettings } from '@/hooks/useSettings';
 import { settingsService } from '@/storage/services';
 import { Input, Textarea, Button, Card, CardContent } from '@/components';
 import type { Settings } from '@/domain/types';
+import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '@/pdf/templates/registry';
+import { InvoiceTemplateCard } from './InvoiceTemplateCard';
 
 export function SettingsPage() {
   const { settings, loading } = useSettings();
@@ -17,6 +19,7 @@ export function SettingsPage() {
     bankCountry: '',
     bankCurrency: 'JPY',
     filenameTemplate: 'invoice-{yyyymm}.pdf',
+    invoiceTemplate: DEFAULT_TEMPLATE,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -134,6 +137,28 @@ export function SettingsPage() {
             <p className="mt-3 text-sm text-slate-500">
               Tokens: {'{freelancer}'}, {'{client}'}, {'{month}'}, {'{monthPad}'}, {'{year}'}, {'{yyyymm}'}
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Invoice Template</h2>
+            <p className="mb-6 text-sm text-slate-500">
+              Choose the visual style for generated invoice PDFs
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.values(INVOICE_TEMPLATES).map((template) => (
+                <InvoiceTemplateCard
+                  key={template.id}
+                  templateId={template.id}
+                  label={template.label}
+                  isSelected={(formData.invoiceTemplate ?? DEFAULT_TEMPLATE) === template.id}
+                  onSelect={() =>
+                    setFormData({ ...formData, invoiceTemplate: template.id })
+                  }
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
 
