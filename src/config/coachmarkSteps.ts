@@ -1,12 +1,38 @@
 import type { CoachmarkStep } from '@/components/Coachmark';
 
 export const coachmarkSteps: CoachmarkStep[] = [
+  // Clients Page Steps (home / start here)
+  {
+    id: 'clients-nav',
+    targetSelector: 'clients-nav',
+    title: 'Manage Clients',
+    description: 'Start here. Add your clients - you\'ll need at least one before creating contracts.',
+    position: 'bottom',
+    targetPage: 'clients',
+  },
+  {
+    id: 'add-client-btn',
+    targetSelector: 'add-client-btn',
+    title: 'Add a Client',
+    description: 'Click this button to add a new client. Enter their company name, address, and email.',
+    position: 'bottom',
+    targetPage: 'clients',
+  },
+  {
+    id: 'client-form',
+    targetSelector: 'client-form',
+    title: 'Client Form',
+    description: 'Fill in the client details. Company Name is required. Click Create when done.',
+    position: 'top',
+    targetPage: 'clients',
+    waitForElement: true,
+  },
   // Settings Page Steps
   {
     id: 'settings-nav',
     targetSelector: 'settings-nav',
-    title: 'Start with Settings',
-    description: 'First, configure your freelancer information and bank details. Click on Settings to get started.',
+    title: 'Settings',
+    description: 'Configure your freelancer information and bank details. Click on Settings to get started.',
     position: 'bottom',
     targetPage: 'settings',
   },
@@ -41,32 +67,6 @@ export const coachmarkSteps: CoachmarkStep[] = [
     description: 'Click Save Settings to store your information. You can update these anytime.',
     position: 'top',
     targetPage: 'settings',
-  },
-  // Clients Page Steps
-  {
-    id: 'clients-nav',
-    targetSelector: 'clients-nav',
-    title: 'Manage Clients',
-    description: 'Add your clients here. You\'ll need at least one client before creating contracts.',
-    position: 'bottom',
-    targetPage: 'clients',
-  },
-  {
-    id: 'add-client-btn',
-    targetSelector: 'add-client-btn',
-    title: 'Add a Client',
-    description: 'Click this button to add a new client. Enter their company name, address, and email.',
-    position: 'bottom',
-    targetPage: 'clients',
-  },
-  {
-    id: 'client-form',
-    targetSelector: 'client-form',
-    title: 'Client Form',
-    description: 'Fill in the client details. Company Name is required. Click Create when done.',
-    position: 'top',
-    targetPage: 'clients',
-    waitForElement: true,
   },
   // Contracts Page Steps
   {

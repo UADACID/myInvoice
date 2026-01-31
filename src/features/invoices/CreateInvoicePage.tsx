@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useClients } from '@/hooks/useClients';
-import { invoiceService } from '@/storage/services';
+import { contractService, invoiceService } from '@/storage/services';
 import { generateInvoiceNumber } from '@/domain/types';
 import { Button, Card, CardContent, Input } from '@/components';
 import type { InvoiceItem } from '@/domain/types';
 
-export function CreateInvoicePage() {
+export interface CreateInvoicePageProps {
+  initialClientId?: string | null;
+  initialContractId?: string | null;
+}
+
+export function CreateInvoicePage({ initialClientId, initialContractId }: CreateInvoicePageProps = {}) {
   const { clients, loading: clientsLoading } = useClients();
   const [formData, setFormData] = useState({
     clientId: '',
@@ -13,6 +18,23 @@ export function CreateInvoicePage() {
     dueDate: '',
     currency: 'JPY',
   });
+  const [linkedContractId, setLinkedContractId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialClientId) {
+      setFormData((prev) => ({ ...prev, clientId: initialClientId }));
+    }
+    if (initialContractId) {
+      setLinkedContractId(initialContractId);
+      contractService.getById(initialContractId).then((contract) => {
+        if (contract) {
+          setFormData((prev) => ({ ...prev, currency: contract.currency, clientId: prev.clientId || contract.clientId }));
+        }
+      });
+    } else {
+      setLinkedContractId(null);
+    }
+  }, [initialClientId, initialContractId]);
   const [items, setItems] = useState<InvoiceItem[]>([
     { description: '', quantity: 1, unitPrice: 0 },
   ]);
@@ -110,6 +132,8 @@ export function CreateInvoicePage() {
           unitPrice: item.unitPrice,
         })),
         currency: formData.currency,
+        invoiceType: 'custom',
+        contractId: linkedContractId ?? null,
       });
 
       // Reset form
@@ -124,8 +148,12 @@ export function CreateInvoicePage() {
 
       alert(`Invoice ${invoiceNumber} created successfully!`);
       
-      // Navigate back to invoices list
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'invoices' } }));
+      // Navigate back: if we came from a contract, go to contract detail; else invoices
+      if (initialContractId) {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'contract-detail', contractId: initialContractId } }));
+      } else {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'invoices' } }));
+      }
     } catch (error) {
       console.error('Error creating invoice:', error);
       alert('Failed to create invoice');

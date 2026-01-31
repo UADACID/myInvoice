@@ -19,11 +19,14 @@ async function buildContext(
   client: Client,
   settings: Settings
 ): Promise<PdfRenderContext> {
-  const contracts = await contractService.getByClientId(invoice.clientId);
-  const contract = contracts[0] ?? null;
-  const hasCustomItems = !!(invoice.items && invoice.items.length > 0);
+  const contract = invoice.contractId != null
+    ? (await contractService.getById(invoice.contractId)) ?? null
+    : (await contractService.getByClientId(invoice.clientId))[0] ?? null;
+  const hasCustomItems = invoice.invoiceType != null
+    ? invoice.invoiceType === 'custom'
+    : !!(invoice.items && invoice.items.length > 0);
   const currency = invoice.currency || contract?.currency || 'JPY';
-  const itemsToRender = hasCustomItems ? invoice.items! : [];
+  const itemsToRender = hasCustomItems && invoice.items ? invoice.items : [];
 
   let paymentTerms: string;
   if (contract) {

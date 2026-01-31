@@ -26,6 +26,8 @@ export interface InvoiceItem {
   unitPrice: number;
 }
 
+export type InvoiceType = 'recurring' | 'custom';
+
 export interface Invoice {
   id: UUID;
   invoiceNumber: string;
@@ -37,6 +39,9 @@ export interface Invoice {
   // Custom invoice fields (optional for backward compatibility)
   items?: InvoiceItem[]; // Custom invoice items
   currency?: string; // Currency for custom invoice (defaults to contract currency or JPY)
+  // Contract-centric fields (optional for backward compatibility)
+  invoiceType?: InvoiceType; // Explicit type; legacy inferred from items
+  contractId?: string | null; // Recurring MUST have; custom MAY have
 }
 
 export type InvoiceTemplateId = 'modern_clean' | 'colorful_minimal' | 'professional';
