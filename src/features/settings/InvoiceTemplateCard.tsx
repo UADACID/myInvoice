@@ -59,11 +59,10 @@ export function InvoiceTemplateCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`relative flex flex-col overflow-hidden rounded-xl border-2 transition-all text-left hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-        isSelected
-          ? 'border-indigo-600 bg-indigo-50/50 shadow-md'
-          : 'border-slate-200 bg-white hover:bg-slate-50'
-      }`}
+      className={`relative flex flex-col overflow-hidden rounded-xl border-2 transition-all text-left hover:border-[var(--color-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 ${isSelected
+        ? 'border-[var(--color-primary)] bg-[var(--color-primary-bkg)] shadow-md'
+        : 'border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-main)]'
+        }`}
     >
       <div className="relative aspect-[595/842] w-full overflow-hidden rounded-t-lg bg-slate-100">
         {loading && (
@@ -85,9 +84,9 @@ export function InvoiceTemplateCard({
         )}
       </div>
       <div className="flex items-center justify-between gap-2 px-4 py-3">
-        <span className="font-medium text-slate-900">{label}</span>
+        <span className="font-medium text-[var(--text-main)]">{label}</span>
         {isSelected && (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-primary)] text-white">
             <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"

@@ -55,12 +55,12 @@ export function BackupPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900 mb-8">Backup & Restore</h1>
+      <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-8">Backup & Restore</h1>
       <div className="space-y-6 max-w-2xl">
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-3">Export Data</h2>
-            <p className="text-sm text-slate-600 mb-6">
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-3">Export Data</h2>
+            <p className="text-sm text-[var(--text-muted)] mb-6">
               Download all your data as a JSON file. This includes clients, contracts, invoices, and settings.
             </p>
             <Button onClick={handleExport} disabled={exporting} data-coachmark="export-btn">
@@ -71,8 +71,8 @@ export function BackupPage() {
 
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-3">Import Data</h2>
-            <p className="text-sm text-slate-600 mb-6">
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-3">Import Data</h2>
+            <p className="text-sm text-[var(--text-muted)] mb-6">
               Restore your data from a previously exported JSON file. This will replace all existing data.
             </p>
             <label className="block">
@@ -81,11 +81,11 @@ export function BackupPage() {
                 accept=".json"
                 onChange={handleImport}
                 disabled={importing}
-                className="block w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 file:cursor-pointer"
+                className="block w-full text-sm text-[var(--text-muted)] file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[var(--color-primary)] file:text-white hover:file:opacity-90 file:cursor-pointer"
                 data-coachmark="import-input"
               />
             </label>
-            {importing && <p className="mt-3 text-sm text-slate-500">Importing...</p>}
+            {importing && <p className="mt-3 text-sm text-[var(--text-muted)]">Importing...</p>}
           </CardContent>
         </Card>
 

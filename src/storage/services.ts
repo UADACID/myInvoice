@@ -131,7 +131,7 @@ export const settingsService = {
         bankCountry: '',
         bankCurrency: 'JPY',
         filenameTemplate: 'invoice-{yyyymm}.pdf',
-        invoiceTemplate: 'modern_clean',
+        invoiceTemplate: 'default',
         ...data,
       };
       await db.settings.add(defaultSettings);

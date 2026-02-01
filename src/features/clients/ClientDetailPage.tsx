@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useClient } from '@/hooks/useClient';
 import { contractService } from '@/storage/services';
-import { Button, Card, CardContent, Input, Table, TableRow, TableCell } from '@/components';
+import { Button, Card, CardContent, Input, Table, TableRow, TableCell, Select } from '@/components';
 import type { Contract } from '@/domain/types';
 
 export interface ClientDetailPageProps {
@@ -51,13 +51,13 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
         <Button type="button" variant="secondary" onClick={() => onNavigate('clients')} className="mb-4">
           Back to Clients
         </Button>
-        <p className="text-slate-600">No client selected. Go back to Clients and click View on a client.</p>
+        <p className="text-[var(--text-muted)]">No client selected. Go back to Clients and click View on a client.</p>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="text-center py-16"><span className="text-sm text-slate-400">Loading</span></div>;
+    return <div className="text-center py-16"><span className="text-sm text-[var(--text-muted)]">Loading</span></div>;
   }
 
   if (!client) {
@@ -66,7 +66,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
         <Button type="button" variant="secondary" onClick={() => onNavigate('clients')} className="mb-4">
           Back to Clients
         </Button>
-        <p className="text-slate-600">Client not found.</p>
+        <p className="text-[var(--text-muted)]">Client not found.</p>
       </div>
     );
   }
@@ -127,14 +127,14 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
 
       <Card className="mb-8">
         <CardContent>
-          <h1 className="text-2xl font-semibold text-slate-900 mb-2">{client.companyName}</h1>
-          {client.email && <p className="text-slate-600 text-sm mb-1">{client.email}</p>}
-          {client.address && <p className="text-slate-500 text-sm">{client.address}</p>}
+          <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2">{client.companyName}</h1>
+          {client.email && <p className="text-[var(--text-muted)] text-sm mb-1">{client.email}</p>}
+          {client.address && <p className="text-[var(--text-muted)] text-sm">{client.address}</p>}
         </CardContent>
       </Card>
 
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-slate-900">Contracts</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-main)]">Contracts</h2>
         <Button
           variant="secondary"
           onClick={() => {
@@ -151,7 +151,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
       {showForm && (
         <Card className="mb-6">
           <CardContent>
-            <h3 className="text-base font-semibold text-slate-900 mb-4">New Contract</h3>
+            <h3 className="text-base font-semibold text-[var(--text-main)] mb-4">New Contract</h3>
             <div className="space-y-4 max-w-lg">
               <Input
                 label="Description Template"
@@ -177,15 +177,15 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
                 onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 1 })}
               />
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Due Date Method</label>
-                <select
+                <Select
+                  label="Due Date Method"
                   value={formData.dueDateMethod ?? 'days'}
                   onChange={(e) => setFormData({ ...formData, dueDateMethod: e.target.value as 'days' | 'endOfNextMonth' })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"
-                >
-                  <option value="days">Fixed Days</option>
-                  <option value="endOfNextMonth">End of Next Month</option>
-                </select>
+                  options={[
+                    { label: 'Fixed Days', value: 'days' },
+                    { label: 'End of Next Month', value: 'endOfNextMonth' }
+                  ]}
+                />
               </div>
               {formData.dueDateMethod === 'days' && (
                 <Input
@@ -202,11 +202,11 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
       )}
 
       {contractsLoading ? (
-        <div className="text-center py-8 text-slate-500 text-sm">Loading contracts…</div>
+        <div className="text-center py-8 text-[var(--text-muted)] text-sm">Loading contracts…</div>
       ) : contracts.length === 0 ? (
         <Card>
           <CardContent>
-            <div className="text-center py-12 text-slate-500 text-sm">No contracts. Add a contract to generate recurring invoices.</div>
+            <div className="text-center py-12 text-[var(--text-muted)] text-sm">No contracts. Add a contract to generate recurring invoices.</div>
           </CardContent>
         </Card>
       ) : (
@@ -268,13 +268,13 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
                     <>
                       <button
                         onClick={() => handleUpdateContract(contract.id)}
-                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                        className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => { setEditing(null); setFormData(defaultContractForm); }}
-                        className="text-sm text-slate-600 hover:text-slate-700 font-medium"
+                        className="text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] font-medium"
                       >
                         Cancel
                       </button>
@@ -283,13 +283,13 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
                     <>
                       <button
                         onClick={() => onNavigate('contract-detail', undefined, contract.id)}
-                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                        className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium"
                       >
                         View
                       </button>
                       <button
                         onClick={() => startEdit(contract)}
-                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                        className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium"
                       >
                         Edit
                       </button>

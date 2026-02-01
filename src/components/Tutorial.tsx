@@ -78,7 +78,7 @@ export function Tutorial({ isOpen, onClose, currentPage, onNavigate }: TutorialP
       onClose();
     } else {
       setCurrentStep(currentStep + 1);
-      
+
       // Navigate to target page if specified
       if (step.targetPage && onNavigate && currentPage !== step.targetPage) {
         onNavigate(step.targetPage);
@@ -99,19 +99,19 @@ export function Tutorial({ isOpen, onClose, currentPage, onNavigate }: TutorialP
         <CardContent className="p-8">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-semibold text-slate-900">{step.title}</h2>
-              <span className="text-sm text-slate-500">
+              <h2 className="text-2xl font-semibold text-[var(--text-main)]">{step.title}</h2>
+              <span className="text-sm text-[var(--text-muted)]">
                 {currentStep + 1} / {tutorialSteps.length}
               </span>
             </div>
-            <p className="text-slate-600 text-base leading-relaxed">{step.description}</p>
+            <p className="text-[var(--text-muted)] text-base leading-relaxed">{step.description}</p>
           </div>
 
           {/* Progress bar */}
           <div className="mb-6">
-            <div className="w-full bg-slate-200 rounded-full h-2">
+            <div className="w-full bg-[var(--bg-main)] rounded-full h-2">
               <div
-                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                className="bg-[var(--color-primary)] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${((currentStep + 1) / tutorialSteps.length) * 100}%` }}
               />
             </div>
@@ -121,7 +121,7 @@ export function Tutorial({ isOpen, onClose, currentPage, onNavigate }: TutorialP
           <div className="flex items-center justify-between gap-4">
             <button
               onClick={handleSkip}
-              className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
             >
               Skip Tutorial
             </button>

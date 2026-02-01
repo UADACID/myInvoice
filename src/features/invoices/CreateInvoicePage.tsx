@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useClients } from '@/hooks/useClients';
 import { contractService, invoiceService } from '@/storage/services';
 import { generateInvoiceNumber } from '@/domain/types';
-import { Button, Card, CardContent, Input } from '@/components';
+import { Button, Card, CardContent, Input, Select } from '@/components';
 import type { InvoiceItem } from '@/domain/types';
 
 export interface CreateInvoicePageProps {
@@ -147,7 +147,7 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
       setErrors({});
 
       alert(`Invoice ${invoiceNumber} created successfully!`);
-      
+
       // Navigate back: if we came from a contract, go to contract detail; else invoices
       if (initialContractId) {
         window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'contract-detail', contractId: initialContractId } }));
@@ -163,26 +163,24 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
   };
 
   if (clientsLoading) {
-    return <div className="text-center py-16"><span className="text-sm text-slate-400">Loading...</span></div>;
+    return <div className="text-center py-16"><span className="text-sm text-[var(--text-muted)]">Loading...</span></div>;
   }
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Create Invoice</h1>
-        <p className="text-slate-600 text-sm">Create a custom invoice with multiple line items</p>
+        <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2">Create Invoice</h1>
+        <p className="text-[var(--text-muted)] text-sm">Create a custom invoice with multiple line items</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card className="mb-6">
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">Invoice Details</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">Invoice Details</h2>
             <div className="space-y-5 max-w-lg">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2.5">
-                  Client <span className="text-red-500">*</span>
-                </label>
-                <select
+                <Select
+                  label="Client"
                   value={formData.clientId}
                   onChange={(e) => {
                     setFormData({ ...formData, clientId: e.target.value });
@@ -192,19 +190,16 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
                       setErrors(newErrors);
                     }
                   }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-slate-900 ${
-                    errors.clientId ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-slate-300'
-                  }`}
+                  error={errors.clientId}
                   required
-                >
-                  <option value="">Select a client</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.companyName}
-                    </option>
-                  ))}
-                </select>
-                {errors.clientId && <p className="mt-2 text-sm text-red-600">{errors.clientId}</p>}
+                  options={[
+                    { label: 'Select a client', value: '' },
+                    ...clients.map(client => ({
+                      label: client.companyName,
+                      value: client.id
+                    }))
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-5">
@@ -241,18 +236,18 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2.5">Currency</label>
-                <select
+                <Select
+                  label="Currency"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-slate-900"
-                >
-                  <option value="JPY">JPY</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="IDR">IDR</option>
-                </select>
+                  options={[
+                    { label: 'JPY', value: 'JPY' },
+                    { label: 'USD', value: 'USD' },
+                    { label: 'EUR', value: 'EUR' },
+                    { label: 'GBP', value: 'GBP' },
+                    { label: 'IDR', value: 'IDR' }
+                  ]}
+                />
               </div>
             </div>
           </CardContent>
@@ -261,7 +256,7 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
         <Card className="mb-6">
           <CardContent>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-slate-900">Invoice Items</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-main)]">Invoice Items</h2>
               <Button type="button" onClick={handleAddItem} variant="secondary">
                 + Add Item
               </Button>
@@ -272,19 +267,19 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Description</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700 w-24">Quantity</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700 w-32">Unit Price</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700 w-32">Total</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700 w-20">Actions</th>
+                  <tr className="border-b border-[var(--border-color)]">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-[var(--text-muted)]">Description</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-[var(--text-muted)] w-24">Quantity</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-[var(--text-muted)] w-32">Unit Price</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-[var(--text-muted)] w-32">Total</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-[var(--text-muted)] w-20">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, index) => {
                     const itemTotal = calculateItemTotal(item);
                     return (
-                      <tr key={index} className="border-b border-slate-100">
+                      <tr key={index} className="border-b border-[var(--border-color)]">
                         <td className="py-3 px-4">
                           <Input
                             value={item.description}
@@ -319,7 +314,7 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
                             required
                           />
                         </td>
-                        <td className="py-3 px-4 text-right text-slate-900 font-medium">
+                        <td className="py-3 px-4 text-right text-[var(--text-main)] font-medium">
                           {itemTotal.toLocaleString()} {formData.currency}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -338,11 +333,11 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-slate-300">
-                    <td colSpan={3} className="py-4 px-4 text-right text-lg font-semibold text-slate-900">
+                  <tr className="border-t-2 border-[var(--border-color)]">
+                    <td colSpan={3} className="py-4 px-4 text-right text-lg font-semibold text-[var(--text-main)]">
                       Grand Total:
                     </td>
-                    <td className="py-4 px-4 text-right text-lg font-bold text-indigo-600">
+                    <td className="py-4 px-4 text-right text-lg font-bold text-[var(--color-primary)]">
                       {calculateGrandTotal().toLocaleString()} {formData.currency}
                     </td>
                     <td></td>

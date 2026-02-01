@@ -44,7 +44,7 @@ export interface Invoice {
   contractId?: string | null; // Recurring MUST have; custom MAY have
 }
 
-export type InvoiceTemplateId = 'modern_clean' | 'colorful_minimal' | 'professional';
+export type InvoiceTemplateId = 'default' | 'clean' | 'standard' | 'classic' | 'soft_accent';
 
 export interface Settings {
   freelancerName: string;
@@ -57,7 +57,7 @@ export interface Settings {
   bankCountry: string;
   bankCurrency: string; // default: JPY
   filenameTemplate: string; // default: invoice-{yyyymm}.pdf
-  invoiceTemplate?: InvoiceTemplateId; // default: modern_clean
+  invoiceTemplate?: InvoiceTemplateId; // default: default
 }
 
 /**
