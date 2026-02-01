@@ -32,8 +32,8 @@ export function Layout({ children }: LayoutProps) {
                     key={page.id}
                     onClick={() => setCurrentPage(page.id)}
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${currentPage === page.id
-                        ? 'border-[var(--color-primary)] text-[var(--text-main)]'
-                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--border-color)]'
+                      ? 'border-[var(--color-primary)] text-[var(--text-main)]'
+                      : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--border-color)]'
                       }`}
                   >
                     {page.label}

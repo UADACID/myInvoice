@@ -215,6 +215,19 @@ function AppContent({
         {renderPage()}
       </main>
 
+      <footer className="bg-[var(--bg-card)] border-t border-[var(--border-color)] mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-[var(--text-muted)] gap-2">
+            <div>
+              &copy; {new Date().getFullYear()} <a href="https://github.com/UADACID" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--text-main)] transition-colors">UADACID</a>
+            </div>
+            <div>
+              Project: <a href="https://github.com/UADACID/myInvoice" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--text-main)] transition-colors">myInvoice</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
       <Tutorial
         isOpen={showTutorial}
         onClose={closeTutorial}
