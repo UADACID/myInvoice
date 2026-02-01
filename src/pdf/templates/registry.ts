@@ -1,33 +1,47 @@
 import type { InvoiceTemplateId } from '@/domain/types';
 import type { PdfRenderContext } from './types';
-import { renderModernClean } from './modernClean';
-import { renderColorfulMinimal } from './colorfulMinimal';
-import { renderProfessional } from './professional';
+import { createUnifiedRenderer } from './unifiedTemplate';
 
-export const DEFAULT_TEMPLATE: InvoiceTemplateId = 'modern_clean';
+export const DEFAULT_TEMPLATE: InvoiceTemplateId = 'default';
 
 export const INVOICE_TEMPLATES: Record<
   InvoiceTemplateId,
   {
     id: InvoiceTemplateId;
     label: string;
+    description: string;
     render: (ctx: PdfRenderContext) => Promise<void>;
   }
 > = {
-  modern_clean: {
-    id: 'modern_clean',
-    label: 'Modern Clean',
-    render: renderModernClean,
+  default: {
+    id: 'default',
+    label: 'Default',
+    description: 'Neutral, monochrome — safe universal option',
+    render: createUnifiedRenderer('default'),
   },
-  colorful_minimal: {
-    id: 'colorful_minimal',
-    label: 'Colorful Minimal',
-    render: renderColorfulMinimal,
+  clean: {
+    id: 'clean',
+    label: 'Clean',
+    description: 'Modern, conservative with more white space',
+    render: createUnifiedRenderer('clean'),
   },
-  professional: {
-    id: 'professional',
-    label: 'Professional',
-    render: renderProfessional,
+  standard: {
+    id: 'standard',
+    label: 'Standard',
+    description: 'Business & accounting friendly, structured',
+    render: createUnifiedRenderer('standard'),
+  },
+  classic: {
+    id: 'classic',
+    label: 'Classic',
+    description: 'Traditional, timeless with strong grid',
+    render: createUnifiedRenderer('classic'),
+  },
+  soft_accent: {
+    id: 'soft_accent',
+    label: 'Soft Accent',
+    description: 'Modern premium with subtle indigo accents',
+    render: createUnifiedRenderer('soft_accent'),
   },
 };
 

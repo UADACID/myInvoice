@@ -4,7 +4,7 @@ import { useClients } from '@/hooks/useClients';
 import { useSettings } from '@/hooks/useSettings';
 import { invoiceService } from '@/storage/services';
 import { generateInvoicePdf } from '@/pdf/invoicePdf';
-import { Table, TableRow, TableCell, Button, Card, CardContent, Modal, Input } from '@/components';
+import { Table, TableRow, TableCell, Button, Card, CardContent, Modal, Input, Select } from '@/components';
 import { getInvoiceType } from '@/utils/invoiceCompat';
 import type { Invoice } from '@/domain/types';
 
@@ -19,7 +19,7 @@ export function InvoicesPage() {
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [filterClient, setFilterClient] = useState<string>('');
@@ -27,7 +27,7 @@ export function InvoicesPage() {
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  
+
   // Tab state for recurring invoices
   const [selectedProjectTab, setSelectedProjectTab] = useState<string | null>(null);
 
@@ -99,7 +99,7 @@ export function InvoicesPage() {
       const { pdfBytes } = await generateInvoicePdf(invoice, clientData, settings);
       const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      
+
       setPreviewInvoice(invoice);
       setPreviewUrl(url);
     } catch (error) {
@@ -120,11 +120,11 @@ export function InvoicesPage() {
   };
 
   // Separate invoices: recurring (from contracts) vs custom (with items)
-  const baseRecurringInvoices = useMemo(() => 
+  const baseRecurringInvoices = useMemo(() =>
     invoices.filter(inv => getInvoiceType(inv) === 'recurring'),
     [invoices]
   );
-  const baseCustomInvoices = useMemo(() => 
+  const baseCustomInvoices = useMemo(() =>
     invoices.filter(inv => getInvoiceType(inv) === 'custom'),
     [invoices]
   );
@@ -132,7 +132,7 @@ export function InvoicesPage() {
   // Group recurring invoices by project (clientId)
   const projectsWithInvoices = useMemo(() => {
     const grouped: Record<string, { clientId: string; invoices: Invoice[] }> = {};
-    
+
     baseRecurringInvoices.forEach((invoice) => {
       if (!grouped[invoice.clientId]) {
         grouped[invoice.clientId] = {
@@ -175,7 +175,7 @@ export function InvoicesPage() {
         const clientName = getClientName(invoice.clientId).toLowerCase();
         const invoiceNum = invoice.invoiceNumber.toLowerCase();
         const total = invoice.total.toString();
-        
+
         if (
           !clientName.includes(query) &&
           !invoiceNum.includes(query) &&
@@ -236,7 +236,7 @@ export function InvoicesPage() {
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
@@ -351,8 +351,8 @@ export function InvoicesPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-2">Invoices</h1>
-        <p className="text-slate-600 text-sm">View all invoices. Preview and download PDFs. To generate or create invoices, go to a contract (Clients → View → Contract → View).</p>
+        <h1 className="text-2xl font-bold text-[var(--text-main)] mb-2">Invoices</h1>
+        <p className="text-[var(--text-muted)] text-sm">View all invoices. Preview and download PDFs. To generate or create invoices, go to a contract (Clients → View → Contract → View).</p>
       </div>
 
       {/* Search and Filter Bar */}
@@ -370,22 +370,21 @@ export function InvoicesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2.5">Client</label>
-                <select
+                <Select
+                  label="Client"
                   value={filterClient}
                   onChange={(e) => setFilterClient(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-slate-900"
-                >
-                  <option value="">All Clients</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.companyName}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { label: 'All Clients', value: '' },
+                    ...clients.map(client => ({
+                      label: client.companyName,
+                      value: client.id
+                    }))
+                  ]}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2.5">Date Range</label>
+                <label className="block text-sm font-medium text-[var(--text-muted)] mb-2.5">Date Range</label>
                 <div className="flex gap-2">
                   <Input
                     type="date"
@@ -414,7 +413,7 @@ export function InvoicesPage() {
                 >
                   Clear Filters
                 </Button>
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-[var(--text-muted)]">
                   {filteredRecurringInvoices.length + customInvoices.length} result(s) found
                 </span>
               </div>
@@ -426,15 +425,15 @@ export function InvoicesPage() {
       {/* Recurring Invoices Section - read-only */}
       <div className="mb-12">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-[var(--text-main)]">
             Recurring Invoices
             {baseRecurringInvoices.length > 0 && (
-              <span className="ml-2 text-sm font-normal text-slate-500">
+              <span className="ml-2 text-sm font-normal text-[var(--text-muted)]">
                 ({baseRecurringInvoices.length} total)
               </span>
             )}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">Generated from contracts. To generate for a year, open a contract and use &quot;Generate for Year&quot;.</p>
+          <p className="text-sm text-[var(--text-muted)] mt-1">Generated from contracts. To generate for a year, open a contract and use &quot;Generate for Year&quot;.</p>
         </div>
 
         {projectsWithInvoices.length === 0 ? (
@@ -448,17 +447,16 @@ export function InvoicesPage() {
         ) : (
           <>
             {/* Project Tabs */}
-            <div className="mb-4 border-b border-slate-200">
+            <div className="mb-4 border-b border-[var(--border-color)]">
               <div className="flex gap-2 overflow-x-auto">
                 {projectsWithInvoices.map((project) => (
                   <button
                     key={project.clientId}
                     onClick={() => setSelectedProjectTab(project.clientId)}
-                    className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
-                      selectedProjectTab === project.clientId
-                        ? 'text-indigo-600 bg-indigo-50 border-b-2 border-indigo-600'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                    }`}
+                    className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${selectedProjectTab === project.clientId
+                      ? 'text-[var(--color-primary)] bg-[var(--color-primary-bkg)] border-b-2 border-[var(--color-primary)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-main)]'
+                      }`}
                   >
                     {project.clientName}
                     <span className="ml-2 text-xs opacity-70">({project.invoices.length})</span>
@@ -493,15 +491,15 @@ export function InvoicesPage() {
       {/* Custom Invoices Section - read-only */}
       <div>
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-[var(--text-main)]">
             Custom Invoices
             {customInvoices.length > 0 && (
-              <span className="ml-2 text-sm font-normal text-slate-500">
+              <span className="ml-2 text-sm font-normal text-[var(--text-muted)]">
                 ({customInvoices.length})
               </span>
             )}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">Manually created invoices with custom line items. To create one, open a contract and use &quot;Create Custom Invoice&quot;.</p>
+          <p className="text-sm text-[var(--text-muted)] mt-1">Manually created invoices with custom line items. To create one, open a contract and use &quot;Create Custom Invoice&quot;.</p>
         </div>
         {renderInvoiceTable(customInvoices, 'No custom invoices.')}
       </div>

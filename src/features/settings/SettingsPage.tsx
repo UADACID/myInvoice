@@ -52,81 +52,81 @@ export function SettingsPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-16"><span className="text-sm text-slate-400">Loading</span></div>;
+    return <div className="text-center py-16"><span className="text-sm text-[var(--text-muted)]">Loading</span></div>;
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900 mb-8">Settings</h1>
+      <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-8">Settings</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card data-coachmark="freelancer-info-card">
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">Freelancer Information</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">Freelancer Information</h2>
             <div className="space-y-5">
-            <Input
-              label="Name"
-              value={formData.freelancerName || ''}
-              onChange={(e) => setFormData({ ...formData, freelancerName: e.target.value })}
-              required
-            />
-            <Textarea
-              label="Address"
-              value={formData.address || ''}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              rows={3}
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email || ''}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
+              <Input
+                label="Name"
+                value={formData.freelancerName || ''}
+                onChange={(e) => setFormData({ ...formData, freelancerName: e.target.value })}
+                required
+              />
+              <Textarea
+                label="Address"
+                value={formData.address || ''}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                rows={3}
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
             </div>
           </CardContent>
         </Card>
 
         <Card data-coachmark="bank-details-card">
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">Bank Details</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">Bank Details</h2>
             <div className="space-y-5">
-            <Input
-              label="Bank Name"
-              value={formData.bankName || ''}
-              onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-            />
-            <Input
-              label="Account Holder"
-              value={formData.accountHolder || ''}
-              onChange={(e) => setFormData({ ...formData, accountHolder: e.target.value })}
-            />
-            <Input
-              label="Account Number"
-              value={formData.accountNumber || ''}
-              onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-            />
-            <Input
-              label="SWIFT Code"
-              value={formData.swift || ''}
-              onChange={(e) => setFormData({ ...formData, swift: e.target.value })}
-            />
-            <Input
-              label="Bank Country"
-              value={formData.bankCountry || ''}
-              onChange={(e) => setFormData({ ...formData, bankCountry: e.target.value })}
-            />
-            <Input
-              label="Bank Currency"
-              value={formData.bankCurrency || ''}
-              onChange={(e) => setFormData({ ...formData, bankCurrency: e.target.value })}
-              placeholder="JPY"
-            />
+              <Input
+                label="Bank Name"
+                value={formData.bankName || ''}
+                onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+              />
+              <Input
+                label="Account Holder"
+                value={formData.accountHolder || ''}
+                onChange={(e) => setFormData({ ...formData, accountHolder: e.target.value })}
+              />
+              <Input
+                label="Account Number"
+                value={formData.accountNumber || ''}
+                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+              />
+              <Input
+                label="SWIFT Code"
+                value={formData.swift || ''}
+                onChange={(e) => setFormData({ ...formData, swift: e.target.value })}
+              />
+              <Input
+                label="Bank Country"
+                value={formData.bankCountry || ''}
+                onChange={(e) => setFormData({ ...formData, bankCountry: e.target.value })}
+              />
+              <Input
+                label="Bank Currency"
+                value={formData.bankCurrency || ''}
+                onChange={(e) => setFormData({ ...formData, bankCurrency: e.target.value })}
+                placeholder="JPY"
+              />
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">PDF Filename Template</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">PDF Filename Template</h2>
             <Input
               label="Template"
               value={formData.filenameTemplate || ''}
@@ -134,7 +134,7 @@ export function SettingsPage() {
               placeholder="invoice-{yyyymm}.pdf"
               data-coachmark="filename-template-input"
             />
-            <p className="mt-3 text-sm text-slate-500">
+            <p className="mt-3 text-sm text-[var(--text-muted)]">
               Tokens: {'{freelancer}'}, {'{client}'}, {'{month}'}, {'{monthPad}'}, {'{year}'}, {'{yyyymm}'}
             </p>
           </CardContent>
@@ -142,8 +142,8 @@ export function SettingsPage() {
 
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-2">Invoice Template</h2>
-            <p className="mb-6 text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-2">Invoice Template</h2>
+            <p className="mb-6 text-sm text-[var(--text-muted)]">
               Choose the visual style for generated invoice PDFs
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

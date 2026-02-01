@@ -146,13 +146,13 @@ export function ContractDetailPage({ contractId, onNavigate }: ContractDetailPag
         <Button type="button" variant="secondary" onClick={() => onNavigate('contracts')} className="mb-4">
           Back to Contracts
         </Button>
-        <p className="text-slate-600">No contract selected. Go back to Contracts and click View on a contract.</p>
+        <p className="text-[var(--text-muted)]">No contract selected. Go back to Contracts and click View on a contract.</p>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="text-center py-16"><span className="text-sm text-slate-400">Loading</span></div>;
+    return <div className="text-center py-16"><span className="text-sm text-[var(--text-muted)]">Loading</span></div>;
   }
 
   if (!contract) {
@@ -161,7 +161,7 @@ export function ContractDetailPage({ contractId, onNavigate }: ContractDetailPag
         <Button type="button" variant="secondary" onClick={() => onNavigate('contracts')} className="mb-4">
           Back to Contracts
         </Button>
-        <p className="text-slate-600">Contract not found.</p>
+        <p className="text-[var(--text-muted)]">Contract not found.</p>
       </div>
     );
   }
@@ -176,20 +176,20 @@ export function ContractDetailPage({ contractId, onNavigate }: ContractDetailPag
 
       <Card className="mb-8">
         <CardContent>
-          <h1 className="text-2xl font-semibold text-slate-900 mb-2">Contract</h1>
-          <p className="text-slate-600 text-sm mb-1"><strong>Client:</strong> {clientName}</p>
-          <p className="text-slate-600 text-sm mb-1"><strong>Description:</strong> {contract.descriptionTemplate}</p>
-          <p className="text-slate-600 text-sm mb-1">
+          <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2">Contract</h1>
+          <p className="text-[var(--text-muted)] text-sm mb-1"><strong>Client:</strong> {clientName}</p>
+          <p className="text-[var(--text-muted)] text-sm mb-1"><strong>Description:</strong> {contract.descriptionTemplate}</p>
+          <p className="text-[var(--text-muted)] text-sm mb-1">
             <strong>Amount:</strong> {contract.unitPrice.toLocaleString()} {contract.currency} × {contract.quantity}
           </p>
-          <p className="text-slate-600 text-sm">
+          <p className="text-[var(--text-muted)] text-sm">
             <strong>Due:</strong> {contract.dueDateMethod === 'endOfNextMonth' ? 'End of next month' : `${contract.dueDays ?? 30} days`}
           </p>
         </CardContent>
       </Card>
 
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-slate-900">Invoices</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-main)]">Invoices</h2>
         <div className="flex gap-2">
           <Button
             onClick={handleGenerateForYear}
@@ -207,7 +207,7 @@ export function ContractDetailPage({ contractId, onNavigate }: ContractDetailPag
       {contractInvoices.length === 0 ? (
         <Card>
           <CardContent>
-            <div className="text-center py-12 text-slate-500 text-sm">
+            <div className="text-center py-12 text-[var(--text-muted)] text-sm">
               No invoices for this contract. Generate recurring invoices or create a custom invoice.
             </div>
           </CardContent>
@@ -225,14 +225,14 @@ export function ContractDetailPage({ contractId, onNavigate }: ContractDetailPag
                   <button
                     onClick={() => handlePreview(inv.id)}
                     disabled={previewLoading || !settings}
-                    className="text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-40"
+                    className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium disabled:opacity-40"
                   >
                     {previewLoading ? 'Loading…' : 'Preview'}
                   </button>
                   <button
                     onClick={() => handleDownloadPdf(inv.id)}
                     disabled={downloading === inv.id || !settings}
-                    className="text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-40"
+                    className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium disabled:opacity-40"
                   >
                     {downloading === inv.id ? 'Generating…' : 'PDF'}
                   </button>
@@ -257,7 +257,7 @@ export function ContractDetailPage({ contractId, onNavigate }: ContractDetailPag
       >
         {previewUrl && (
           <div className="w-full h-[calc(90vh-120px)]">
-            <iframe src={previewUrl} className="w-full h-full border border-slate-200 rounded-lg" title="Invoice Preview" />
+            <iframe src={previewUrl} className="w-full h-full border border-[var(--border-color)] rounded-lg" title="Invoice Preview" />
           </div>
         )}
       </Modal>

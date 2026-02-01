@@ -56,7 +56,7 @@ export function Coachmark({
     const findElement = () => {
       // Try data attribute first
       let element = document.querySelector(`[data-coachmark="${step.targetSelector}"]`) as HTMLElement;
-      
+
       // Fallback to CSS selector
       if (!element) {
         element = document.querySelector(step.targetSelector) as HTMLElement;
@@ -230,7 +230,7 @@ export function Coachmark({
       {/* Tooltip */}
       <div
         ref={tooltipRef}
-        className="absolute bg-white rounded-xl shadow-2xl p-6 max-w-sm z-10001"
+        className="absolute bg-[var(--bg-card)] rounded-xl shadow-2xl p-6 max-w-sm z-10001 border border-[var(--border-color)]"
         style={{
           top: `${tooltipPosition.top}px`,
           left: `${tooltipPosition.left}px`,
@@ -239,34 +239,33 @@ export function Coachmark({
         {/* Arrow */}
         {tooltipPosition.arrow && (
           <div
-            className={`absolute w-0 h-0 border-8 border-transparent ${
-              tooltipPosition.arrow === 'top'
-                ? '-top-4 left-1/2 -translate-x-1/2 border-b-white'
+            className={`absolute w-0 h-0 border-8 border-transparent ${tooltipPosition.arrow === 'top'
+                ? '-top-4 left-1/2 -translate-x-1/2 border-b-[var(--bg-card)]'
                 : tooltipPosition.arrow === 'bottom'
-                ? '-bottom-4 left-1/2 -translate-x-1/2 border-t-white'
-                : tooltipPosition.arrow === 'left'
-                ? '-left-4 top-1/2 -translate-y-1/2 border-r-white'
-                : '-right-4 top-1/2 -translate-y-1/2 border-l-white'
-            }`}
+                  ? '-bottom-4 left-1/2 -translate-x-1/2 border-t-[var(--bg-card)]'
+                  : tooltipPosition.arrow === 'left'
+                    ? '-left-4 top-1/2 -translate-y-1/2 border-r-[var(--bg-card)]'
+                    : '-right-4 top-1/2 -translate-y-1/2 border-l-[var(--bg-card)]'
+              }`}
           />
         )}
 
         {/* Content */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-slate-900">{step.title}</h3>
-            <span className="text-sm text-slate-500">
+            <h3 className="text-lg font-semibold text-[var(--text-main)]">{step.title}</h3>
+            <span className="text-sm text-[var(--text-muted)]">
               {currentStepIndex + 1} / {totalSteps}
             </span>
           </div>
-          <p className="text-slate-600 text-sm leading-relaxed">{step.description}</p>
+          <p className="text-[var(--text-muted)] text-sm leading-relaxed">{step.description}</p>
         </div>
 
         {/* Progress bar */}
         <div className="mb-4">
-          <div className="w-full bg-slate-200 rounded-full h-1.5">
+          <div className="w-full bg-[var(--bg-main)] rounded-full h-1.5">
             <div
-              className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
+              className="bg-[var(--color-primary)] h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentStepIndex + 1) / totalSteps) * 100}%` }}
             />
           </div>
@@ -276,7 +275,7 @@ export function Coachmark({
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={onSkip}
-            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
           >
             Skip Tour
           </button>

@@ -8,8 +8,8 @@ interface CardProps {
 
 export function Card({ children, className = '', 'data-coachmark': dataCoachmark }: CardProps) {
   return (
-    <div 
-      className={`bg-white rounded-xl border border-slate-200 ${className}`}
+    <div
+      className={`bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow duration-300 ${className}`}
       data-coachmark={dataCoachmark}
     >
       {children}
@@ -24,7 +24,7 @@ interface CardHeaderProps {
 
 export function CardHeader({ children, className = '' }: CardHeaderProps) {
   return (
-    <div className={`px-6 py-5 border-b border-slate-100 ${className}`}>
+    <div className={`px-6 py-5 border-b border-[var(--border-color)] ${className}`}>
       {children}
     </div>
   );

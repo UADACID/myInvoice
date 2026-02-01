@@ -1,40 +1,39 @@
 import { type ReactNode } from 'react';
+import { Button } from './Button';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title: string;
   children: ReactNode;
-  className?: string;
+  className?: string; // Additional classes for wider modals
 }
 
 export function Modal({ isOpen, onClose, title, children, className = '' }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className={`bg-white rounded-xl shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] flex flex-col ${className}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {title && (
-          <div className="flex items-center justify-between p-6 border-b border-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
-              aria-label="Close"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div className={`relative bg-[var(--bg-card)] rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto w-full max-w-lg border border-[var(--border-color)] animate-in fade-in zoom-in-95 duration-200 ${className}`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+          <h2 className="text-lg font-semibold text-[var(--text-main)]">{title}</h2>
+          <Button variant="secondary" onClick={onClose} className="!p-2 !rounded-full border-transparent hover:bg-[var(--bg-main)]">
+            <span className="sr-only">Close</span>
+            <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </Button>
+        </div>
+
+        <div className="px-6 py-6">
+          {children}
+        </div>
       </div>
     </div>
   );
