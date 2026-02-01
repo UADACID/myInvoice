@@ -18,10 +18,10 @@ interface TableProps {
   onSort?: (key: string) => void;
 }
 
-export function Table({ 
-  headers, 
-  children, 
-  className = '', 
+export function Table({
+  headers,
+  children,
+  className = '',
   'data-coachmark': dataCoachmark,
   sortKey,
   sortDirection,
@@ -41,25 +41,24 @@ export function Table({
   };
 
   return (
-    <div 
-      className={`overflow-x-auto bg-white rounded-xl border border-slate-200 ${className}`}
+    <div
+      className={`overflow-x-auto bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] ${className}`}
       data-coachmark={dataCoachmark}
     >
       <table className="min-w-full">
         <thead>
-          <tr className="border-b border-slate-200">
+          <tr className="border-b border-[var(--border-color)]">
             {normalizedHeaders.map((header, index) => (
               <th
                 key={index}
                 onClick={() => handleSort(header)}
-                className={`px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider ${
-                  header.sortable ? 'cursor-pointer hover:bg-slate-50 select-none' : ''
-                }`}
+                className={`px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider ${header.sortable ? 'cursor-pointer hover:bg-[var(--bg-main)] select-none' : ''
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span>{header.label}</span>
                   {header.sortable && header.key && sortKey === header.key && (
-                    <span className="text-indigo-600">
+                    <span className="text-[var(--color-primary)]">
                       {sortDirection === 'asc' ? '↑' : '↓'}
                     </span>
                   )}
@@ -68,7 +67,7 @@ export function Table({
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--border-color)]">
           {children}
         </tbody>
       </table>
@@ -82,7 +81,7 @@ interface TableRowProps {
 }
 
 export function TableRow({ children, className = '' }: TableRowProps) {
-  return <tr className={`hover:bg-slate-50 transition-colors ${className}`}>{children}</tr>;
+  return <tr className={`hover:bg-[var(--bg-main)] transition-colors ${className}`}>{children}</tr>;
 }
 
 interface TableCellProps {
@@ -92,7 +91,7 @@ interface TableCellProps {
 
 export function TableCell({ children, className = '' }: TableCellProps) {
   return (
-    <td className={`px-6 py-4 text-sm text-slate-900 ${className}`}>
+    <td className={`px-6 py-4 text-sm text-[var(--text-main)] ${className}`}>
       {children}
     </td>
   );

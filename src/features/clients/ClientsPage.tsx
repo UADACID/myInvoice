@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useClients } from '@/hooks/useClients';
 import { useContracts } from '@/hooks/useContracts';
 import { clientService } from '@/storage/services';
-import { Button, Input, Card, CardContent } from '@/components';
+import { Button, Input, Card, CardContent, Select } from '@/components';
 import type { Client } from '@/domain/types';
 
 // Modern palette – full-fill cards with white text (saturated enough for contrast)
@@ -62,7 +62,7 @@ export function ClientsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Clients</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-main)] tracking-tight">Clients</h1>
         <Button onClick={() => setShowForm(!showForm)} variant="secondary" data-coachmark="add-client-btn">
           {showForm ? 'Cancel' : 'Add Client'}
         </Button>
@@ -71,7 +71,7 @@ export function ClientsPage() {
       {showForm && (
         <Card className="mb-8" data-coachmark="client-form">
           <CardContent>
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">New Client</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">New Client</h2>
             <div className="space-y-5 max-w-lg">
               <Input
                 label="Company Name"
@@ -109,15 +109,15 @@ export function ClientsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Sort</label>
-              <select
+              <Select
+                label="Sort"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'name' | 'nameDesc')}
-                className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"
-              >
-                <option value="name">Name A–Z</option>
-                <option value="nameDesc">Name Z–A</option>
-              </select>
+                options={[
+                  { label: 'Name A–Z', value: 'name' },
+                  { label: 'Name Z–A', value: 'nameDesc' },
+                ]}
+              />
             </div>
           </div>
         </CardContent>
@@ -127,30 +127,30 @@ export function ClientsPage() {
         <Card>
           <CardContent>
             <div className="text-center py-16">
-              <p className="text-slate-600 text-base mb-1">No clients</p>
-              <p className="text-slate-400 text-sm">{searchQuery ? 'Try a different search.' : 'Add your first client.'}</p>
+              <p className="text-[var(--text-main)] text-base mb-1">No clients</p>
+              <p className="text-[var(--text-muted)] text-sm">{searchQuery ? 'Try a different search.' : 'Add your first client.'}</p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedClients.map((client) => (
-            <Card key={client.id} className="flex flex-col">
+            <Card key={client.id} className="flex flex-col h-full hover:-translate-y-1 transition-transform duration-300">
               <CardContent className="flex-1 flex flex-col">
-                <h3 className="text-lg font-semibold text-slate-900 mb-1">{client.companyName}</h3>
-                {client.email && <p className="text-sm text-slate-600 mb-2">{client.email}</p>}
-                <p className="text-sm text-slate-500 mb-4 line-clamp-2">{client.address || '—'}</p>
-                <p className="text-xs text-slate-400 mb-4">
+                <h3 className="text-lg font-semibold text-[var(--text-main)] mb-1">{client.companyName}</h3>
+                {client.email && <p className="text-sm text-[var(--text-muted)] mb-2">{client.email}</p>}
+                <p className="text-sm text-[var(--text-muted)] mb-4 line-clamp-2">{client.address || '—'}</p>
+                <p className="text-xs text-[var(--text-muted)] mb-4 mt-auto opacity-70">
                   {contractCountByClient[client.id] ?? 0} contract{(contractCountByClient[client.id] ?? 0) !== 1 ? 's' : ''}
                 </p>
                 <Button
                   variant="secondary"
-                  className="mt-auto"
+                  className="w-full justify-center mt-2 group-hover:border-[var(--color-primary)] group-hover:text-[var(--color-primary)]"
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'client-detail', clientId: client.id } }));
                   }}
                 >
-                  View
+                  View Details
                 </Button>
               </CardContent>
             </Card>
