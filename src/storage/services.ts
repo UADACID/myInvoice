@@ -1,6 +1,7 @@
 import { db } from './database';
 import type { Client, Contract, Invoice, Settings, UUID } from '@/domain/types';
 import { v4 as uuidv4 } from 'uuid';
+import { FREELANCER_INFO_REQUIRED_MESSAGE, isFreelancerInfoComplete } from '@/utils/freelancerInfo';
 
 // Client CRUD
 export const clientService = {
@@ -81,6 +82,10 @@ export const invoiceService = {
   },
 
   async create(data: Omit<Invoice, 'id'>): Promise<Invoice> {
+    const settings = await settingsService.get();
+    if (!isFreelancerInfoComplete(settings)) {
+      throw new Error(FREELANCER_INFO_REQUIRED_MESSAGE);
+    }
     const invoice: Invoice = {
       id: uuidv4(),
       ...data,

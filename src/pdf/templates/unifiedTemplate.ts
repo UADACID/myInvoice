@@ -2,6 +2,7 @@ import { rgb } from 'pdf-lib';
 import type { PdfRenderContext } from './types';
 import { STYLES, type InvoiceStyleConfig } from './styles';
 import type { InvoiceTemplateId } from '@/domain/types';
+import { getCurrencyFullLabel } from '@/utils/currencies';
 
 const MARGIN = 50;
 
@@ -385,7 +386,7 @@ async function renderInvoice(
     // CURRENCY NOTE
     // =========================================================================
     y = amountDueY - 30;
-    const currencyFullName = currency === 'JPY' ? 'Japanese Yen (JPY)' : currency;
+    const currencyFullName = getCurrencyFullLabel(currency);
     page.drawText(`All amounts in ${currencyFullName}`, {
         x: MARGIN,
         y,

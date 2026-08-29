@@ -7,12 +7,15 @@ import { generateInvoicePdf } from '@/pdf/invoicePdf';
 import { Table, TableRow, TableCell, Button, Card, CardContent, Modal, Input, Select } from '@/components';
 import { getInvoiceType } from '@/utils/invoiceCompat';
 import type { Invoice } from '@/domain/types';
+import { FREELANCER_INFO_REQUIRED_MESSAGE, isFreelancerInfoComplete } from '@/utils/freelancerInfo';
+import { useAppNavigation } from '@/navigation/useAppNavigation';
 
 type SortKey = 'invoiceNumber' | 'client' | 'total' | 'issueDate' | 'dueDate' | null;
 type SortDirection = 'asc' | 'desc' | null;
 
 export function InvoicesPage() {
-  const { invoices, loading } = useInvoices();
+  const { navigateToPage } = useAppNavigation();
+  const { invoices, loading, refreshInvoices } = useInvoices();
   const { clients } = useClients();
   const { settings } = useSettings();
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -31,16 +34,22 @@ export function InvoicesPage() {
   // Tab state for recurring invoices
   const [selectedProjectTab, setSelectedProjectTab] = useState<string | null>(null);
 
+  const freelancerReady = isFreelancerInfoComplete(settings);
+
   const getClientName = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
     return client?.companyName || 'Unknown';
   };
 
+  const requireFreelancerInfo = (): boolean => {
+    if (freelancerReady) return true;
+    alert(FREELANCER_INFO_REQUIRED_MESSAGE);
+    navigateToPage('settings');
+    return false;
+  };
+
   const handleDownloadPdf = async (invoiceId: string) => {
-    if (!settings) {
-      alert('Please configure settings first');
-      return;
-    }
+    if (!requireFreelancerInfo() || !settings) return;
 
     setDownloading(invoiceId);
     try {
@@ -77,10 +86,7 @@ export function InvoicesPage() {
   };
 
   const handlePreview = async (invoiceId: string) => {
-    if (!settings) {
-      alert('Please configure settings first');
-      return;
-    }
+    if (!requireFreelancerInfo() || !settings) return;
 
     setPreviewLoading(true);
     try {
@@ -117,6 +123,25 @@ export function InvoicesPage() {
     }
     setPreviewInvoice(null);
     setPreviewUrl(null);
+  };
+
+  const handleDeleteInvoice = async (id: string) => {
+    if (!confirm('Delete this invoice?')) return;
+    try {
+      await invoiceService.delete(id);
+      refreshInvoices();
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      alert('Failed to delete invoice');
+    }
+  };
+
+  const handleGoToSource = (invoice: Invoice) => {
+    if (invoice.contractId) {
+      navigateToPage('contract-detail', invoice.clientId, invoice.contractId);
+    } else {
+      navigateToPage('client-detail', invoice.clientId);
+    }
   };
 
   // Separate invoices: recurring (from contracts) vs custom (with items)
@@ -322,10 +347,26 @@ export function InvoicesPage() {
             <TableCell>{invoice.issueDate}</TableCell>
             <TableCell>{invoice.dueDate}</TableCell>
             <TableCell>
-              <div className="flex gap-4">
+              <div className="flex gap-3 flex-wrap">
+                {invoice.contractId && (
+                  <button
+                    onClick={() => handleGoToSource(invoice)}
+                    className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium transition-colors"
+                  >
+                    Contract
+                  </button>
+                )}
+                {!invoice.contractId && (
+                  <button
+                    onClick={() => handleGoToSource(invoice)}
+                    className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium transition-colors"
+                  >
+                    Client
+                  </button>
+                )}
                 <button
                   onClick={() => handlePreview(invoice.id)}
-                  disabled={previewLoading || !settings}
+                  disabled={previewLoading || !freelancerReady}
                   className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors disabled:opacity-40"
                   data-coachmark="preview-btn"
                 >
@@ -333,10 +374,16 @@ export function InvoicesPage() {
                 </button>
                 <button
                   onClick={() => handleDownloadPdf(invoice.id)}
-                  disabled={downloading === invoice.id || !settings}
+                  disabled={downloading === invoice.id || !freelancerReady}
                   className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors disabled:opacity-40"
                 >
                   {downloading === invoice.id ? 'Generating...' : 'PDF'}
+                </button>
+                <button
+                  onClick={() => handleDeleteInvoice(invoice.id)}
+                  className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+                >
+                  Delete
                 </button>
               </div>
             </TableCell>
@@ -352,7 +399,7 @@ export function InvoicesPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--text-main)] mb-2">Invoices</h1>
-        <p className="text-[var(--text-muted)] text-sm">View all invoices. Preview and download PDFs. To generate or create invoices, go to a contract (Clients → View → Contract → View).</p>
+        <p className="text-[var(--text-muted)] text-sm">View all invoices. Preview, download PDFs, delete, or jump to the source contract/client. To generate invoices: Clients → open client → open contract.</p>
       </div>
 
       {/* Search and Filter Bar */}
@@ -433,7 +480,7 @@ export function InvoicesPage() {
               </span>
             )}
           </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">Generated from contracts. To generate for a year, open a contract and use &quot;Generate for Year&quot;.</p>
+          <p className="text-sm text-[var(--text-muted)] mt-1">Generated from contracts. To generate for a year: Clients → open client → open contract → &quot;Generate for Year&quot;.</p>
         </div>
 
         {projectsWithInvoices.length === 0 ? (

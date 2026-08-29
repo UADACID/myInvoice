@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useClients } from '@/hooks/useClients';
+import { useSettings } from '@/hooks/useSettings';
 import { contractService, invoiceService } from '@/storage/services';
 import { generateInvoiceNumber } from '@/domain/types';
-import { Button, Card, CardContent, Input, Select } from '@/components';
+import { Button, Card, CardContent, Input, NumericInput, Select } from '@/components';
 import type { InvoiceItem } from '@/domain/types';
+import { FREELANCER_INFO_REQUIRED_MESSAGE, isFreelancerInfoComplete } from '@/utils/freelancerInfo';
+import { useAppNavigation } from '@/navigation/useAppNavigation';
+import { CURRENCY_OPTIONS, DEFAULT_CURRENCY } from '@/utils/currencies';
 
 export interface CreateInvoicePageProps {
   initialClientId?: string | null;
@@ -11,12 +15,15 @@ export interface CreateInvoicePageProps {
 }
 
 export function CreateInvoicePage({ initialClientId, initialContractId }: CreateInvoicePageProps = {}) {
+  const { navigateToPage } = useAppNavigation();
   const { clients, loading: clientsLoading } = useClients();
+  const { settings, loading: settingsLoading } = useSettings();
+  const freelancerReady = isFreelancerInfoComplete(settings);
   const [formData, setFormData] = useState({
     clientId: '',
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: '',
-    currency: 'JPY',
+    currency: DEFAULT_CURRENCY,
   });
   const [linkedContractId, setLinkedContractId] = useState<string | null>(null);
 
@@ -109,6 +116,12 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!isFreelancerInfoComplete(settings)) {
+      alert(FREELANCER_INFO_REQUIRED_MESSAGE);
+      navigateToPage('settings');
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -141,7 +154,7 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
         clientId: '',
         issueDate: new Date().toISOString().split('T')[0],
         dueDate: '',
-        currency: 'JPY',
+        currency: DEFAULT_CURRENCY,
       });
       setItems([{ description: '', quantity: 1, unitPrice: 0 }]);
       setErrors({});
@@ -149,10 +162,14 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
       alert(`Invoice ${invoiceNumber} created successfully!`);
 
       // Navigate back: if we came from a contract, go to contract detail; else invoices
-      if (initialContractId) {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'contract-detail', contractId: initialContractId } }));
+      if (initialContractId && (initialClientId || formData.clientId)) {
+        navigateToPage(
+          'contract-detail',
+          initialClientId || formData.clientId,
+          initialContractId,
+        );
       } else {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'invoices' } }));
+        navigateToPage('invoices');
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
@@ -162,8 +179,29 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
     }
   };
 
-  if (clientsLoading) {
+  if (clientsLoading || settingsLoading) {
     return <div className="text-center py-16"><span className="text-sm text-[var(--text-muted)]">Loading...</span></div>;
+  }
+
+  if (!freelancerReady) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2">Create Invoice</h1>
+        </div>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-[var(--text-main)] mb-4">{FREELANCER_INFO_REQUIRED_MESSAGE}</p>
+            <Button
+              type="button"
+              onClick={() => navigateToPage('settings')}
+            >
+              Go to Settings
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -240,13 +278,7 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
                   label="Currency"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  options={[
-                    { label: 'JPY', value: 'JPY' },
-                    { label: 'USD', value: 'USD' },
-                    { label: 'EUR', value: 'EUR' },
-                    { label: 'GBP', value: 'GBP' },
-                    { label: 'IDR', value: 'IDR' }
-                  ]}
+                  options={CURRENCY_OPTIONS}
                 />
               </div>
             </div>
@@ -291,27 +323,27 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
                           />
                         </td>
                         <td className="py-3 px-4">
-                          <Input
-                            type="number"
-                            min="0.01"
-                            step="0.01"
+                          <NumericInput
+                            placeholder="1"
                             value={item.quantity}
-                            onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                            onChange={(quantity) => handleItemChange(index, 'quantity', quantity)}
+                            allowDecimals
+                            emptyValue={0}
+                            min={0}
                             error={errors[`item-${index}-quantity`]}
                             className="w-full text-center"
-                            required
                           />
                         </td>
                         <td className="py-3 px-4">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                          <NumericInput
+                            placeholder="100000"
                             value={item.unitPrice}
-                            onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            onChange={(unitPrice) => handleItemChange(index, 'unitPrice', unitPrice)}
+                            allowDecimals
+                            emptyValue={0}
+                            min={0}
                             error={errors[`item-${index}-unitPrice`]}
                             className="w-full text-right"
-                            required
                           />
                         </td>
                         <td className="py-3 px-4 text-right text-[var(--text-main)] font-medium">
@@ -356,7 +388,15 @@ export function CreateInvoicePage({ initialClientId, initialContractId }: Create
             type="button"
             variant="secondary"
             onClick={() => {
-              window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'invoices' } }));
+              if (initialContractId && (initialClientId || formData.clientId)) {
+                navigateToPage(
+                  'contract-detail',
+                  initialClientId || formData.clientId,
+                  initialContractId,
+                );
+              } else {
+                navigateToPage('invoices');
+              }
             }}
           >
             Cancel
