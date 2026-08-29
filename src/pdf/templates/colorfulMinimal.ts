@@ -1,5 +1,6 @@
 import { rgb } from 'pdf-lib';
 import type { PdfRenderContext } from './types';
+import { getCurrencyFullLabel } from '@/utils/currencies';
 
 const MARGIN = 50;
 const BORDER_THICKNESS = 0.3;
@@ -385,7 +386,7 @@ export async function renderColorfulMinimal(ctx: PdfRenderContext): Promise<void
 
   // CURRENCY NOTE
   y = amountDueY - 30;
-  const currencyFullName = currency === 'JPY' ? 'Japanese Yen (JPY)' : currency;
+  const currencyFullName = getCurrencyFullLabel(currency);
   page.drawText(`All amounts in ${currencyFullName}`, {
     x: MARGIN,
     y,

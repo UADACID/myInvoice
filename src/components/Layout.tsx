@@ -4,14 +4,13 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-type Page = 'settings' | 'clients' | 'contracts' | 'invoices' | 'backup';
+type Page = 'settings' | 'clients' | 'invoices' | 'backup';
 
 export function Layout({ children }: LayoutProps) {
   const [currentPage, setCurrentPage] = useState<Page>('invoices');
 
   const pages: { id: Page; label: string }[] = [
     { id: 'invoices', label: 'Invoices' },
-    { id: 'contracts', label: 'Contracts' },
     { id: 'clients', label: 'Clients' },
     { id: 'settings', label: 'Settings' },
     { id: 'backup', label: 'Backup' },

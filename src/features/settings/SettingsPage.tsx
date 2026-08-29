@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { settingsService } from '@/storage/services';
-import { Input, Textarea, Button, Card, CardContent } from '@/components';
+import { Input, Textarea, Button, Card, CardContent, Select } from '@/components';
 import type { Settings } from '@/domain/types';
 import { INVOICE_TEMPLATES, DEFAULT_TEMPLATE } from '@/pdf/templates/registry';
 import { InvoiceTemplateCard } from './InvoiceTemplateCard';
+import { SetupProgress } from '@/components/SetupProgress';
+import { getSetupProgress, isFreelancerInfoComplete, type SetupSectionId } from '@/utils/setupProgress';
+import { formatFilename } from '@/pdf/filenameFormatter';
+import { SAMPLE_CLIENT, SAMPLE_INVOICE } from '@/pdf/templates/sampleData';
+import { CURRENCY_OPTIONS } from '@/utils/currencies';
 
 export function SettingsPage() {
   const { settings, loading } = useSettings();
@@ -30,6 +35,29 @@ export function SettingsPage() {
     }
   }, [settings]);
 
+  const setupProgress = useMemo(() => getSetupProgress(formData), [formData]);
+
+  const filenamePreview = useMemo(() => {
+    const previewSettings = {
+      ...formData,
+      freelancerName: formData.freelancerName || 'Your Name',
+      filenameTemplate: formData.filenameTemplate || 'invoice-{yyyymm}.pdf',
+    } as Settings;
+    return formatFilename(
+      previewSettings.filenameTemplate,
+      SAMPLE_INVOICE,
+      SAMPLE_CLIENT,
+      previewSettings
+    );
+  }, [formData.filenameTemplate, formData.freelancerName]);
+
+  const scrollToSetupSection = (sectionId: SetupSectionId) => {
+    document.getElementById(`setup-section-${sectionId}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -42,6 +70,9 @@ export function SettingsPage() {
         await settingsService.set(formData as Settings);
       }
       setSaved(true);
+      if (isFreelancerInfoComplete(formData as Settings)) {
+        localStorage.setItem('setup_redirect_done', 'true');
+      }
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -57,9 +88,10 @@ export function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-8">Settings</h1>
+      <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-8" data-coachmark="settings-nav">Settings</h1>
+      <SetupProgress progress={setupProgress} onSectionClick={scrollToSetupSection} />
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card data-coachmark="freelancer-info-card">
+        <Card id="setup-section-freelancer" className="scroll-mt-24" data-coachmark="freelancer-info-card">
           <CardContent>
             <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">Freelancer Information</h2>
             <div className="space-y-5">
@@ -74,18 +106,20 @@ export function SettingsPage() {
                 value={formData.address || ''}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 rows={3}
+                required
               />
               <Input
                 label="Email"
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card data-coachmark="bank-details-card">
+        <Card id="setup-section-bank" className="scroll-mt-24" data-coachmark="bank-details-card">
           <CardContent>
             <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">Bank Details</h2>
             <div className="space-y-5">
@@ -114,16 +148,17 @@ export function SettingsPage() {
                 value={formData.bankCountry || ''}
                 onChange={(e) => setFormData({ ...formData, bankCountry: e.target.value })}
               />
-              <Input
+              <Select
                 label="Bank Currency"
-                value={formData.bankCurrency || ''}
+                value={formData.bankCurrency || 'JPY'}
                 onChange={(e) => setFormData({ ...formData, bankCurrency: e.target.value })}
-                placeholder="JPY"
+                options={CURRENCY_OPTIONS}
               />
             </div>
           </CardContent>
         </Card>
 
+        <div id="setup-section-pdf" className="space-y-6 scroll-mt-24">
         <Card>
           <CardContent>
             <h2 className="text-lg font-semibold text-[var(--text-main)] mb-6">PDF Filename Template</h2>
@@ -137,6 +172,37 @@ export function SettingsPage() {
             <p className="mt-3 text-sm text-[var(--text-muted)]">
               Tokens: {'{freelancer}'}, {'{client}'}, {'{month}'}, {'{monthPad}'}, {'{year}'}, {'{yyyymm}'}
             </p>
+
+            <div className="mt-6 pt-5 border-t border-dashed border-[var(--border-color)]">
+              <p className="text-sm font-medium text-[var(--text-muted)] mb-3">Download will save as</p>
+              <div className="inline-flex max-w-full items-center gap-2.5 rounded-full bg-[var(--color-primary-bkg)] px-4 py-2.5">
+                <svg
+                  className="h-4 w-4 shrink-0 text-[var(--color-primary)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                <span className="font-mono text-sm font-semibold text-[var(--color-primary)] break-all">
+                  {filenamePreview}
+                </span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                Sample: client <span className="font-medium text-[var(--text-main)]">{SAMPLE_CLIENT.companyName}</span>
+                {' · '}date <span className="font-medium text-[var(--text-main)]">{SAMPLE_INVOICE.issueDate}</span>
+                {' · '}freelancer{' '}
+                <span className="font-medium text-[var(--text-main)]">
+                  {formData.freelancerName?.trim() || 'Your Name'}
+                </span>
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -161,6 +227,7 @@ export function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
 
         <div className="flex items-center gap-4 pt-2">
           <Button type="submit" disabled={saving} data-coachmark="save-settings-btn">

@@ -109,3 +109,73 @@ select {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+@keyframes generate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes progress-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes success-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-generate-spin {
+  animation: generate-spin 0.8s linear infinite;
+}
+
+.animate-overlay-fade-in {
+  animation: overlay-fade-in 0.2s ease-out forwards;
+}
+
+.animate-overlay-card-in {
+  animation: overlay-card-in 0.25s ease-out forwards;
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 1s ease-in-out infinite;
+}
+
+.animate-success-pop {
+  animation: success-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

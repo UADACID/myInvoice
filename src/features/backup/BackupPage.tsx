@@ -55,7 +55,7 @@ export function BackupPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-8">Backup & Restore</h1>
+      <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-8" data-coachmark="backup-nav">Backup & Restore</h1>
       <div className="space-y-6 max-w-2xl">
         <Card>
           <CardContent>

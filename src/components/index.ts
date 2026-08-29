@@ -7,3 +7,7 @@ export { Layout } from './Layout';
 export { Logo } from './Logo';
 export { Modal } from './Modal';
 export { Select } from './Select';
+export { NumericInput } from './NumericInput';
+export { GenerateYearOverlay } from './GenerateYearOverlay';
+export type { GenerateYearPhase, GenerateYearProgress, GenerateYearResult } from './GenerateYearOverlay';
+export { SetupProgress } from './SetupProgress';

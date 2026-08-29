@@ -3,12 +3,14 @@ import { type ReactNode } from 'react';
 interface CardProps {
   children: ReactNode;
   className?: string;
+  id?: string;
   'data-coachmark'?: string;
 }
 
-export function Card({ children, className = '', 'data-coachmark': dataCoachmark }: CardProps) {
+export function Card({ children, className = '', id, 'data-coachmark': dataCoachmark }: CardProps) {
   return (
     <div
+      id={id}
       className={`bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] shadow-sm hover:shadow-md transition-shadow duration-300 ${className}`}
       data-coachmark={dataCoachmark}
     >

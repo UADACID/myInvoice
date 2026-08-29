@@ -19,7 +19,7 @@ const tutorialSteps: TutorialStep[] = [
   {
     id: 'settings',
     title: 'Step 1: Configure Settings',
-    description: 'First, go to Settings and fill in your freelancer information, bank details, and PDF filename template. This information will be used in all your invoices.',
+    description: 'First, open More → Settings and fill in your freelancer information, bank details, and PDF filename template. This information will be used in all your invoices.',
     targetPage: 'settings',
   },
   {
@@ -31,19 +31,19 @@ const tutorialSteps: TutorialStep[] = [
   {
     id: 'contracts',
     title: 'Step 3: Create Contracts',
-    description: 'Create contracts for each client. Contracts define the recurring service details (description, price, currency, quantity). Use {{month}} and {{year}} in descriptions for dynamic dates.',
-    targetPage: 'contracts',
+    description: 'Open a client, then add contracts there. Contracts define recurring service details (description, price, currency, quantity). Use {{month}} and {{year}} in descriptions for dynamic dates. Open a contract to generate invoices or create a custom invoice.',
+    targetPage: 'clients',
   },
   {
     id: 'invoices',
-    title: 'Step 4: Generate Invoices',
-    description: 'Once you have contracts, generate invoices for the year. You can preview, download PDFs, or delete invoices as needed.',
+    title: 'Step 4: Browse Invoices',
+    description: 'Use the Invoices page to search, preview, and download PDFs. Generate recurring invoices or create custom ones from a contract under a client.',
     targetPage: 'invoices',
   },
   {
     id: 'backup',
     title: 'Step 5: Backup Your Data',
-    description: 'Regularly export your data to JSON files. You can import them later to restore everything. Your data is stored locally in your browser.',
+    description: 'Open More → Backup and regularly export your data to JSON files. You can import them later to restore everything. Your data is stored locally in your browser.',
     targetPage: 'backup',
   },
 ];
@@ -94,7 +94,7 @@ export function Tutorial({ isOpen, onClose, currentPage, onNavigate }: TutorialP
   if (isCompleted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <Card className="max-w-2xl w-full mx-4">
         <CardContent className="p-8">
           <div className="mb-6">

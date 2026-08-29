@@ -1,31 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useClient } from '@/hooks/useClient';
 import { contractService } from '@/storage/services';
-import { Button, Card, CardContent, Input, Table, TableRow, TableCell, Select } from '@/components';
+import { Button, Card, CardContent, Input, NumericInput, Table, TableRow, TableCell, Select } from '@/components';
 import type { Contract } from '@/domain/types';
+
+import { useAppNavigation } from '@/navigation/useAppNavigation';
+import { CURRENCY_OPTIONS, DEFAULT_CURRENCY } from '@/utils/currencies';
+import { getDueDateMethodHint, getQuantityHint, normalizeQuantity, previewDescriptionTemplate } from '@/utils/descriptionTemplate';
 
 export interface ClientDetailPageProps {
   clientId: string | null;
-  onNavigate: (page: string, clientId?: string, contractId?: string) => void;
 }
 
 const defaultContractForm: Omit<Contract, 'id'> = {
   clientId: '',
   descriptionTemplate: '',
   unitPrice: 0,
-  currency: 'JPY',
-  quantity: 1,
+  currency: DEFAULT_CURRENCY,
+  quantity: 0,
   dueDays: 30,
   dueDateMethod: 'days',
 };
 
-export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps) {
+export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
+  const { navigateToPage } = useAppNavigation();
   const { client, loading } = useClient(clientId);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [contractsLoading, setContractsLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
   const [formData, setFormData] = useState<Omit<Contract, 'id'>>(defaultContractForm);
   const [showForm, setShowForm] = useState(false);
+
+  const descriptionPreview = useMemo(() => {
+    const template = formData.descriptionTemplate.trim();
+    if (!template) return null;
+    return previewDescriptionTemplate(template);
+  }, [formData.descriptionTemplate]);
+
+  const dueDateMethodHint = useMemo(
+    () => getDueDateMethodHint(formData.dueDateMethod ?? 'days', formData.dueDays ?? 30),
+    [formData.dueDateMethod, formData.dueDays],
+  );
+
+  const quantityHint = useMemo(
+    () => getQuantityHint(formData.unitPrice, formData.quantity, formData.currency),
+    [formData.unitPrice, formData.quantity, formData.currency],
+  );
 
   useEffect(() => {
     if (!clientId) {
@@ -48,7 +68,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
   if (!clientId) {
     return (
       <div>
-        <Button type="button" variant="secondary" onClick={() => onNavigate('clients')} className="mb-4">
+        <Button type="button" variant="secondary" onClick={() => navigateToPage('clients')} className="mb-4">
           Back to Clients
         </Button>
         <p className="text-[var(--text-muted)]">No client selected. Go back to Clients and click View on a client.</p>
@@ -63,7 +83,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
   if (!client) {
     return (
       <div>
-        <Button type="button" variant="secondary" onClick={() => onNavigate('clients')} className="mb-4">
+        <Button type="button" variant="secondary" onClick={() => navigateToPage('clients')} className="mb-4">
           Back to Clients
         </Button>
         <p className="text-[var(--text-muted)]">Client not found.</p>
@@ -73,7 +93,11 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
 
   const handleCreateContract = async () => {
     try {
-      await contractService.create({ ...formData, clientId });
+      await contractService.create({
+        ...formData,
+        clientId,
+        quantity: normalizeQuantity(formData.quantity),
+      });
       setFormData(defaultContractForm);
       setShowForm(false);
       loadContracts();
@@ -85,7 +109,10 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
 
   const handleUpdateContract = async (id: string) => {
     try {
-      await contractService.update(id, formData);
+      await contractService.update(id, {
+        ...formData,
+        quantity: normalizeQuantity(formData.quantity),
+      });
       setEditing(null);
       setFormData(defaultContractForm);
       loadContracts();
@@ -121,7 +148,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
 
   return (
     <div>
-      <Button type="button" variant="secondary" onClick={() => onNavigate('clients')} className="mb-6">
+      <Button type="button" variant="secondary" onClick={() => navigateToPage('clients')} className="mb-6">
         Back to Clients
       </Button>
 
@@ -133,8 +160,8 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
         </CardContent>
       </Card>
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-[var(--text-main)]">Contracts</h2>
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-lg font-semibold text-[var(--text-main)]">Contracts for this client</h2>
         <Button
           variant="secondary"
           onClick={() => {
@@ -147,35 +174,63 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
           {showForm ? 'Cancel' : 'Add Contract'}
         </Button>
       </div>
+      <p className="text-sm text-[var(--text-muted)] mb-6">
+        Create contracts here, then open one to generate recurring invoices or create a custom invoice.
+      </p>
 
       {showForm && (
         <Card className="mb-6">
           <CardContent>
             <h3 className="text-base font-semibold text-[var(--text-main)] mb-4">New Contract</h3>
             <div className="space-y-4 max-w-lg">
-              <Input
-                label="Description Template"
-                value={formData.descriptionTemplate}
-                onChange={(e) => setFormData({ ...formData, descriptionTemplate: e.target.value })}
-                placeholder="Development Service — {{month}} {{year}}"
-              />
-              <Input
+              <div>
+                <Input
+                  label="Description Template"
+                  value={formData.descriptionTemplate}
+                  onChange={(e) => setFormData({ ...formData, descriptionTemplate: e.target.value })}
+                  placeholder="Development Service — {{month}} {{year}}"
+                  data-coachmark="contract-description-input"
+                />
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  Tokens: {'{{month}}'}, {'{{year}}'}
+                </p>
+                {descriptionPreview && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-[var(--border-color)]">
+                    <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Preview on invoice</p>
+                    <p className="inline-flex max-w-full rounded-lg bg-[var(--color-primary-bkg)] px-3 py-2 text-sm text-[var(--text-main)]">
+                      {descriptionPreview}
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Sample for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <NumericInput
                 label="Unit Price"
-                type="number"
+                placeholder="100000"
                 value={formData.unitPrice}
-                onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                onChange={(unitPrice) => setFormData({ ...formData, unitPrice })}
+                min={0}
+                emptyValue={0}
               />
-              <Input
+              <Select
                 label="Currency"
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                options={CURRENCY_OPTIONS}
               />
-              <Input
-                label="Quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 1 })}
-              />
+              <div>
+                <NumericInput
+                  label="Quantity (optional)"
+                  placeholder="1"
+                  value={formData.quantity}
+                  onChange={(quantity) => setFormData({ ...formData, quantity })}
+                  allowDecimals={false}
+                  emptyValue={0}
+                />
+                <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">{quantityHint}</p>
+              </div>
               <div>
                 <Select
                   label="Due Date Method"
@@ -186,6 +241,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
                     { label: 'End of Next Month', value: 'endOfNextMonth' }
                   ]}
                 />
+                <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">{dueDateMethodHint}</p>
               </div>
               {formData.dueDateMethod === 'days' && (
                 <Input
@@ -226,10 +282,12 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
               </TableCell>
               <TableCell>
                 {editing === contract.id ? (
-                  <Input
-                    type="number"
+                  <NumericInput
+                    placeholder="100000"
                     value={formData.unitPrice}
-                    onChange={(e) => setFormData({ ...formData, unitPrice: parseFloat(e.target.value) || 0 })}
+                    onChange={(unitPrice) => setFormData({ ...formData, unitPrice })}
+                    min={0}
+                    emptyValue={0}
                     className="w-full"
                   />
                 ) : (
@@ -238,10 +296,11 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
               </TableCell>
               <TableCell>
                 {editing === contract.id ? (
-                  <Input
+                  <Select
                     value={formData.currency}
                     onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                    className="w-full"
+                    options={CURRENCY_OPTIONS}
+                    className="w-full min-w-[8rem]"
                   />
                 ) : (
                   contract.currency
@@ -249,10 +308,12 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
               </TableCell>
               <TableCell>
                 {editing === contract.id ? (
-                  <Input
-                    type="number"
+                  <NumericInput
+                    placeholder="1"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 1 })}
+                    onChange={(quantity) => setFormData({ ...formData, quantity })}
+                    allowDecimals={false}
+                    emptyValue={0}
                     className="w-full"
                   />
                 ) : (
@@ -282,7 +343,7 @@ export function ClientDetailPage({ clientId, onNavigate }: ClientDetailPageProps
                   ) : (
                     <>
                       <button
-                        onClick={() => onNavigate('contract-detail', undefined, contract.id)}
+                        onClick={() => navigateToPage('contract-detail', clientId ?? undefined, contract.id)}
                         className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium"
                       >
                         View

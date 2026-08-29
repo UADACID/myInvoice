@@ -220,7 +220,7 @@ export function Coachmark({
     >
       {/* Dark overlay with spotlight cutout */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50 pointer-events-none"
+        className="absolute inset-0 bg-black/50 pointer-events-none"
         style={{
           clipPath,
           WebkitClipPath: clipPath,

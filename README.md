@@ -114,26 +114,26 @@ Vercel offers free hosting for personal projects, including private repositories
 
 ### First Time Setup
 
-1. Go to **Settings** and fill in your freelancer information and bank details
+1. Go to **More → Settings** and fill in your freelancer information and bank details
 2. Add your **Clients**
-3. Create **Contracts** for recurring invoices
-4. Generate invoices or create custom invoices
+3. Open a client and create **Contracts** for recurring invoices
+4. Open a contract to generate invoices or create custom invoices
 
 ### Generating Recurring Invoices
 
-1. Create contracts for each client/project
-2. Click **Generate for Year** in the Recurring Invoices section
+1. Open a client, then open (or create) a contract for that client/project
+2. Click **Generate for Year** on the contract detail page
 3. Invoices will be automatically generated for all 12 months
 
 ### Creating Custom Invoices
 
-1. Click **+ Create Custom Invoice**
+1. From a contract, click **+ Create Custom Invoice**
 2. Select client, set dates, and add line items
-3. The invoice will be saved and appear in the Custom Invoices section
+3. The invoice will be saved and appear under that contract and on the Invoices page
 
 ### Backup Your Data
 
-1. Go to **Backup** page
+1. Go to **More → Backup**
 2. Click **Export Data** to download a JSON file
 3. To restore, use **Import Data** and select your backup file
 

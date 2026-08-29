@@ -1,14 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useClients } from '@/hooks/useClients';
 import { useContracts } from '@/hooks/useContracts';
+import { useSettings } from '@/hooks/useSettings';
 import { clientService } from '@/storage/services';
 import { Button, Input, Card, CardContent, Select } from '@/components';
 import type { Client } from '@/domain/types';
+import { FREELANCER_INFO_REQUIRED_MESSAGE, getSetupProgress, isFreelancerInfoComplete } from '@/utils/setupProgress';
+import { SetupProgress } from '@/components/SetupProgress';
+import { useAppNavigation } from '@/navigation/useAppNavigation';
 
 // Modern palette – full-fill cards with white text (saturated enough for contrast)
 export function ClientsPage() {
+  const { navigateToPage } = useAppNavigation();
   const { clients, loading } = useClients();
   const { contracts } = useContracts();
+  const { settings } = useSettings();
+  const freelancerReady = isFreelancerInfoComplete(settings);
+  const setupProgress = useMemo(() => getSetupProgress(settings), [settings]);
   const [formData, setFormData] = useState<Omit<Client, 'id'>>({
     companyName: '',
     address: '',
@@ -67,6 +75,22 @@ export function ClientsPage() {
           {showForm ? 'Cancel' : 'Add Client'}
         </Button>
       </div>
+
+      {!freelancerReady && (
+        <Card className="mb-6 border border-[var(--color-primary)]">
+          <CardContent>
+            <p className="text-sm text-[var(--text-main)] mb-4">{FREELANCER_INFO_REQUIRED_MESSAGE}</p>
+            <SetupProgress progress={setupProgress} compact />
+            <Button
+              type="button"
+              className="mt-4"
+              onClick={() => navigateToPage('settings')}
+            >
+              Complete Setup in Settings
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && (
         <Card className="mb-8" data-coachmark="client-form">
@@ -146,9 +170,7 @@ export function ClientsPage() {
                 <Button
                   variant="secondary"
                   className="w-full justify-center mt-2 group-hover:border-[var(--color-primary)] group-hover:text-[var(--color-primary)]"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('navigate', { detail: { page: 'client-detail', clientId: client.id } }));
-                  }}
+                  onClick={() => navigateToPage('client-detail', client.id)}
                 >
                   View Details
                 </Button>
